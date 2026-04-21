@@ -1,0 +1,10 @@
+{
+  "type": "pyramid",
+  "levels": [
+    {"label": "Self-actualization", "sublabel": "rare"},
+    {"label": "Esteem"},
+    {"label": "Belonging"},
+    {"label": "Safety"},
+    {"label": "Physiological", "sublabel": "common"}
+  ]
+}

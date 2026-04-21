@@ -1,0 +1,13 @@
+{
+  "type": "tree",
+  "root": {
+    "label": "A",
+    "children": [
+      {"label": "B", "children": [
+        {"label": "C", "children": [
+          {"label": "D"}
+        ]}
+      ]}
+    ]
+  }
+}

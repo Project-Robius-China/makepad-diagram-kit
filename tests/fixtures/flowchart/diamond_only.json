@@ -1,0 +1,7 @@
+{
+  "type": "flowchart",
+  "nodes": [
+    {"id": "q", "label": "Ready?", "shape": "diamond"}
+  ],
+  "edges": []
+}

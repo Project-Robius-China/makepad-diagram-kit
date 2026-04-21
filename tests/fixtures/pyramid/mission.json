@@ -1,0 +1,9 @@
+{
+  "type": "pyramid",
+  "levels": [
+    {"label": "Mission"},
+    {"label": "Strategy"},
+    {"label": "Tactics"}
+  ],
+  "accent_idx": 0
+}

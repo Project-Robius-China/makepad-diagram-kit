@@ -1,0 +1,30 @@
+[package]
+name = "makepad-diagram-kit"
+version = "0.1.0"
+edition = "2024"
+description = "Streaming-renderable editorial diagrams for Makepad 2.0 apps. JSON-spec input, Makepad-native vector output. 13 diagram types planned; v1 ships 5 (pyramid, quadrant, tree, layers, flowchart)."
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+[dependencies]
+# JSON spec parser. micro-serde keeps binary size small and plays nice with
+# Makepad's no-alloc paths if we ever target embedded.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+
+[dev-dependencies]
+# For spec snapshot testing via literal JSON round-trips.
+pretty_assertions = "1"
+
+[features]
+default = []
+# Opt-in: renderer binding for Makepad widgets. Pulls in makepad-draw so pure
+# parsing consumers (e.g., CLI validators) can stay lightweight.
+makepad = []
+
+[lib]
+path = "src/lib.rs"
+
+[lints.clippy]
+all = "warn"

@@ -1,0 +1,14 @@
+{
+  "type": "quadrant",
+  "axes": {
+    "x": {"min": 0, "max": 10, "low_label": "LOW EFFORT", "high_label": "HIGH EFFORT"},
+    "y": {"min": 0, "max": 10, "low_label": "LOW IMPACT", "high_label": "HIGH IMPACT"}
+  },
+  "points": [
+    {"x": 2, "y": 8, "label": "quick win"},
+    {"x": 8, "y": 9, "label": "big bet"},
+    {"x": 3, "y": 2, "label": "nice-to-have"},
+    {"x": 9, "y": 1, "label": "time sink"}
+  ],
+  "accent_idx": 1
+}

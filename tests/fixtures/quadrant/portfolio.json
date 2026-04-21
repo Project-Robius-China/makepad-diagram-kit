@@ -1,0 +1,13 @@
+{
+  "type": "quadrant",
+  "axes": {
+    "x": {"min": -5, "max": 5, "low_label": "COST", "high_label": "VALUE"},
+    "y": {"min": 0, "max": 1, "low_label": "RISKY", "high_label": "SAFE"}
+  },
+  "points": [
+    {"x": 4, "y": 0.9, "label": "blue chip"},
+    {"x": -2, "y": 0.3, "label": "speculative"},
+    {"x": 0, "y": 0.5, "label": "index"},
+    {"x": 3, "y": 0.2, "label": "growth"}
+  ]
+}

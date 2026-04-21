@@ -1,0 +1,10 @@
+{
+  "type": "layers",
+  "layers": [
+    {"label": "CDN",         "annotation": "caches"},
+    {"label": "API Gateway", "annotation": "routes"},
+    {"label": "Services",    "annotation": "business"},
+    {"label": "Database",    "annotation": "state"}
+  ],
+  "accent_idx": 2
+}

@@ -1,0 +1,13 @@
+{
+  "type": "layers",
+  "layers": [
+    {"label": "Application", "tag": "L7"},
+    {"label": "Presentation", "tag": "L6"},
+    {"label": "Session", "tag": "L5"},
+    {"label": "Transport", "tag": "L4"},
+    {"label": "Network", "tag": "L3"},
+    {"label": "Data Link", "tag": "L2"},
+    {"label": "Physical", "tag": "L1"}
+  ],
+  "accent_idx": 3
+}

@@ -1,0 +1,14 @@
+{
+  "type": "tree",
+  "root": {
+    "label": "Product",
+    "children": [
+      {"label": "Core", "children": [
+        {"label": "Parse"},
+        {"label": "Layout"}
+      ]},
+      {"label": "Bindings"}
+    ]
+  },
+  "accent_path": [0, 1]
+}

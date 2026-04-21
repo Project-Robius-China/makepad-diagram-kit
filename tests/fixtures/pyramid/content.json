@@ -1,0 +1,10 @@
+{
+  "type": "pyramid",
+  "levels": [
+    {"label": "Books", "sublabel": "~1 / year"},
+    {"label": "Essays", "sublabel": "~12 / year"},
+    {"label": "Notes", "sublabel": "~50 / year"},
+    {"label": "Short posts", "sublabel": "daily"}
+  ],
+  "accent_idx": 0
+}

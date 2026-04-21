@@ -1,0 +1,12 @@
+{
+  "type": "flowchart",
+  "nodes": [
+    {"id": "a", "label": "Step A"},
+    {"id": "b", "label": "Step B"},
+    {"id": "c", "label": "Step C"}
+  ],
+  "edges": [
+    {"from": "a", "to": "b"},
+    {"from": "b", "to": "c"}
+  ]
+}

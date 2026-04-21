@@ -1,0 +1,12 @@
+{
+  "type": "quadrant",
+  "axes": {
+    "x": {"min": 0, "max": 100},
+    "y": {"min": 0, "max": 10}
+  },
+  "points": [
+    {"x": 50, "y": 5, "label": "mid"},
+    {"x": 100, "y": 10, "label": "tr"},
+    {"x": 0, "y": 0, "label": "bl"}
+  ]
+}

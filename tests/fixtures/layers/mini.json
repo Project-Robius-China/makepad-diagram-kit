@@ -1,0 +1,7 @@
+{
+  "type": "layers",
+  "layers": [
+    {"label": "Top"},
+    {"label": "Bottom"}
+  ]
+}
