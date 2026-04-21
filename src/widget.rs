@@ -33,7 +33,7 @@ script_mod! {
         }
         draw_text +: {
             color: #1c1917
-            text_style: TextStyle{
+            text_style: theme.font_regular{
                 font_size: 11.0
                 line_spacing: 1.2
             }

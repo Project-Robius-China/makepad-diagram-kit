@@ -111,7 +111,7 @@ pub fn layout_pyramid(spec: &PyramidSpec, ctx: &LayoutContext) -> DiagramLayout 
 
         let is_accent = spec.accent_idx == Some(i);
         let (fill, stroke): (Color, Color) = if is_accent {
-            (theme.palette.accent.with_alpha(32), theme.palette.accent)
+            (theme.palette.accent, theme.palette.accent)
         } else {
             (theme.palette.paper, theme.palette.rule)
         };
