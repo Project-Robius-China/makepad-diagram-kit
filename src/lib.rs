@@ -57,6 +57,18 @@ pub mod streaming;
 pub mod theme;
 pub mod types;
 
+// Makepad-native bindings — feature-gated so pure-parsing consumers stay
+// lightweight. `widget` exports `DiagramView`; `makepad_render` exports the
+// primitive → draw-call helpers in case embedders want to paint into their
+// own widgets instead of hosting the whole `DiagramView`.
+#[cfg(feature = "makepad")]
+pub mod makepad_render;
+#[cfg(feature = "makepad")]
+pub mod widget;
+
+#[cfg(feature = "makepad")]
+pub use widget::DiagramView;
+
 pub use errors::{ParseError, Warning};
 pub use layout::{DiagramLayout, LayoutContext};
 pub use primitive::{LineStyle, Point, Primitive, Rect, TextAlign, TextWeight};

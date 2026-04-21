@@ -13,15 +13,22 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 
+# Makepad widget binding — feature-gated so pure-parsing consumers (CLI
+# validators, alternative renderers) don't pull in the full Makepad stack.
+# Path dep rather than a git/crates.io pin: our fork's `dev` branch ships
+# the aichat pieces this kit integrates with, and we want lock-step
+# development without round-tripping through a published release.
+makepad-widgets = { path = "../robius/makepad/widgets", optional = true }
+
 [dev-dependencies]
 # For spec snapshot testing via literal JSON round-trips.
 pretty_assertions = "1"
 
 [features]
 default = []
-# Opt-in: renderer binding for Makepad widgets. Pulls in makepad-draw so pure
-# parsing consumers (e.g., CLI validators) can stay lightweight.
-makepad = []
+# Opt-in: renderer binding for Makepad widgets. Activates `makepad_render`
+# + the `DiagramView` widget; leaves parse/layout untouched.
+makepad = ["dep:makepad-widgets"]
 
 [lib]
 path = "src/lib.rs"
