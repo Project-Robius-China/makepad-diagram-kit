@@ -18,24 +18,26 @@ use crate::primitive::{Primitive, TextAlign, TextWeight};
 use crate::theme::Color;
 
 /// Vertical inset of the tag box from the node rect's top edge.
-pub(crate) const INSET_Y: f32 = 8.0;
+pub(crate) const INSET_Y: f32 = 6.0;
 /// Horizontal inset of the tag box from the node rect's left edge.
 pub(crate) const INSET_X: f32 = 8.0;
-/// Tag box height.
-pub(crate) const TAG_HEIGHT: f32 = 12.0;
+/// Tag box height. Bumped 12 → 16 so the 9-lpx mono text has breathing
+/// room inside the outline (Makepad's DrawText at font_size 7 visually
+/// overflowed the previous 12-lpx box).
+pub(crate) const TAG_HEIGHT: f32 = 16.0;
 /// Tag font size (lpx).
-pub(crate) const TAG_FONT_SIZE: f32 = 7.0;
+pub(crate) const TAG_FONT_SIZE: f32 = 9.0;
 /// Stroke thickness for the tag outline (`stroke-thin` per style guide).
 pub(crate) const TAG_STROKE: f32 = 0.8;
 /// Corner radius for the tag outline (`radius-sm` per style guide).
 pub(crate) const TAG_RADIUS: f32 = 2.0;
 
 /// Tag width given the uppercase-tag length, empirically tuned against the
-/// reference HTML (`ROOT` → 32 lpx, `CAT` → 28 lpx, `EXT` → 28 lpx).
+/// reference HTML (`ROOT` → 36 lpx, `CAT` → 30 lpx, `EXT` → 30 lpx).
 #[inline]
 pub(crate) fn tag_width(len: usize) -> f32 {
-    // 6 lpx per glyph + 8 lpx combined side padding.
-    (len as f32) * 6.0 + 8.0
+    // ~7 lpx per uppercase mono glyph at 9-lpx size + 10 lpx combined padding.
+    (len as f32) * 7.0 + 10.0
 }
 
 /// Push the two primitives that make up an eyebrow tag: the outline rect
@@ -68,13 +70,13 @@ pub(crate) fn push_eyebrow(
         corner_radius: TAG_RADIUS,
     });
 
-    // Centred text inside the tag box.
+    // Centred text inside the tag box. Makepad's DrawText uses `pos` as
+    // the top of the glyph bounding box, so to vertically centre a 9-lpx
+    // glyph in a 16-lpx tall box we offset `(16 - 9) / 2 ≈ 3.5` from the
+    // top — giving `y + 3.5`.
     out.push(Primitive::Text {
         x: x + w / 2.0,
-        // Visual baseline ~ 2/3 down the box — matches the reference
-        // (`y=97` relative to a tag rect starting at `y=88`, height 12 →
-        // baseline = 9 below the top).
-        y: y + TAG_HEIGHT * 0.75,
+        y: y + (TAG_HEIGHT - TAG_FONT_SIZE) * 0.5,
         text: upper,
         font_size: TAG_FONT_SIZE,
         color: stroke,
