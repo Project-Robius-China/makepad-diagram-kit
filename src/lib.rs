@@ -69,6 +69,21 @@ pub mod widget;
 #[cfg(feature = "makepad")]
 pub use widget::DiagramView;
 
+/// Re-export of the DSL registration hook the `widget` module's
+/// `script_mod!` macro generates. Consumer apps must call this from their
+/// own `App::script_mod` fn alongside `makepad_widgets::script_mod(vm)` so
+/// `mod.widgets.DiagramView` resolves in DSL:
+///
+/// ```ignore
+/// fn script_mod(vm: &mut ScriptVm) -> ScriptValue {
+///     crate::makepad_widgets::script_mod(vm);
+///     crate::makepad_diagram_kit::script_mod(vm);
+///     self::script_mod(vm)
+/// }
+/// ```
+#[cfg(feature = "makepad")]
+pub use widget::script_mod;
+
 pub use errors::{ParseError, Warning};
 pub use layout::{DiagramLayout, LayoutContext};
 pub use primitive::{LineStyle, Point, Primitive, Rect, TextAlign, TextWeight};
