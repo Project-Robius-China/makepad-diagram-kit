@@ -74,16 +74,22 @@ script_mod! {
         draw_rect +: {
             color: #faf7f2
         }
+        // Node-sized rects (radius 6). Makepad treats #[live] struct
+        // fields as uniforms per shader batch — meaning one radius per
+        // DrawRoundedRect instance. Use two separate instances so nodes
+        // and tags can differ without the `instance(...)` DSL promotion
+        // (which type-checks against uniform field types and fails).
         draw_rounded +: {
-            // `instance(...)` promotes these fields to per-draw-call
-            // attributes; without it, Makepad treats #[live] struct
-            // fields as uniforms shared across every rect in a batch,
-            // which makes small tags (intended radius 2 at 12-lpx
-            // height) inherit the node's radius 6 and turn into pills.
-            color: instance(#faf7f2)
-            border_color: instance(#1c1917)
-            border_size: instance(1.0)
-            border_radius: instance(6.0)
+            color: #faf7f2
+            border_color: #1c1917
+            border_size: 1.0
+            border_radius: 6.0
+        }
+        draw_rounded_tag +: {
+            color: #00000000
+            border_color: #1c1917
+            border_size: 0.8
+            border_radius: 2.0
         }
         draw_dot_pattern +: {
             color: #1c1917
@@ -146,10 +152,14 @@ pub struct DiagramView {
     #[redraw]
     #[live]
     pub draw_rect: DrawColor,
-    /// Rounded-rect pass — used for every `Primitive::Rect` so node boxes
-    /// pick up the v1.2 editorial radius without 4-border-rect slivers.
+    /// Rounded-rect pass for node-sized boxes (radius 6).
     #[live]
     pub draw_rounded: DrawRoundedRect,
+    /// Second rounded-rect pass for eyebrow tags (radius 2). Separate
+    /// from `draw_rounded` because `border_radius` behaves as a uniform
+    /// per shader-batch, so node and tag radii can't share.
+    #[live]
+    pub draw_rounded_tag: DrawRoundedRect,
     /// Full-canvas dot pattern painted once before the primitives.
     #[live]
     pub draw_dot_pattern: DrawDotPattern,
@@ -309,6 +319,7 @@ impl Widget for DiagramView {
                 cx,
                 &mut self.draw_rect,
                 &mut self.draw_rounded,
+                &mut self.draw_rounded_tag,
                 &mut self.draw_text,
                 bounds_rect.pos,
                 &l.primitives,
