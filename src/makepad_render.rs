@@ -343,7 +343,6 @@ pub fn render_primitives(
     cx: &mut Cx2d,
     draw_rect: &mut DrawColor,
     draw_rounded: &mut DrawRoundedRect,
-    draw_rounded_tag: &mut DrawRoundedRect,
     draw_text: &mut DrawText,
     origin: Vec2d,
     primitives: &[Primitive],
@@ -359,28 +358,19 @@ pub fn render_primitives(
                 stroke,
                 stroke_width,
                 corner_radius,
-            } => {
-                // Dispatch by rect size. Short rects (eyebrow tags) go
-                // through the tag pass with radius 2; larger rects (nodes)
-                // use the node pass with radius 6. Each shader batch shares
-                // its uniform `border_radius`, so separating the two
-                // prevents pill-shaped tags.
-                let use_tag = *h < 18.0;
-                let target = if use_tag { &mut *draw_rounded_tag } else { &mut *draw_rounded };
-                render_rect_rounded(
-                    cx,
-                    target,
-                    origin,
-                    *x,
-                    *y,
-                    *w,
-                    *h,
-                    *fill,
-                    *stroke,
-                    *stroke_width,
-                    *corner_radius,
-                );
-            }
+            } => render_rect_rounded(
+                cx,
+                draw_rounded,
+                origin,
+                *x,
+                *y,
+                *w,
+                *h,
+                *fill,
+                *stroke,
+                *stroke_width,
+                *corner_radius,
+            ),
             Primitive::Polygon {
                 points,
                 fill,

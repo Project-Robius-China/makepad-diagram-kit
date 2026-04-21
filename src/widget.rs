@@ -28,6 +28,15 @@ script_mod! {
     set_type_default() do #(DrawRoundedRect::script_shader(vm)){
         ..mod.draw.DrawQuad
 
+        // `instance` keyword declares per-draw-call attributes. Without
+        // this each #[live] struct field becomes a uniform shared
+        // across the shader batch, which caused small eyebrow tags to
+        // inherit the node's 6-lpx radius and render as pills.
+        instance color: vec4(0.0, 0.0, 0.0, 0.0)
+        instance border_color: vec4(0.0, 0.0, 0.0, 0.0)
+        instance border_size: 0.0
+        instance border_radius: 2.0
+
         pixel: fn() {
             let sdf = Sdf2d.viewport(self.pos * self.rect_size)
             let inset = self.border_size
@@ -74,22 +83,11 @@ script_mod! {
         draw_rect +: {
             color: #faf7f2
         }
-        // Node-sized rects (radius 6). Makepad treats #[live] struct
-        // fields as uniforms per shader batch — meaning one radius per
-        // DrawRoundedRect instance. Use two separate instances so nodes
-        // and tags can differ without the `instance(...)` DSL promotion
-        // (which type-checks against uniform field types and fails).
         draw_rounded +: {
             color: #faf7f2
             border_color: #1c1917
             border_size: 1.0
             border_radius: 6.0
-        }
-        draw_rounded_tag +: {
-            color: #00000000
-            border_color: #1c1917
-            border_size: 0.8
-            border_radius: 2.0
         }
         draw_dot_pattern +: {
             color: #1c1917
@@ -152,14 +150,12 @@ pub struct DiagramView {
     #[redraw]
     #[live]
     pub draw_rect: DrawColor,
-    /// Rounded-rect pass for node-sized boxes (radius 6).
+    /// Rounded-rect pass — uses per-instance `color` / `border_color` /
+    /// `border_size` / `border_radius` thanks to the `instance` keyword
+    /// in the DrawRoundedRect shader DSL, so node (radius 6) and tag
+    /// (radius 2) rects can share a single draw batch.
     #[live]
     pub draw_rounded: DrawRoundedRect,
-    /// Second rounded-rect pass for eyebrow tags (radius 2). Separate
-    /// from `draw_rounded` because `border_radius` behaves as a uniform
-    /// per shader-batch, so node and tag radii can't share.
-    #[live]
-    pub draw_rounded_tag: DrawRoundedRect,
     /// Full-canvas dot pattern painted once before the primitives.
     #[live]
     pub draw_dot_pattern: DrawDotPattern,
@@ -319,7 +315,6 @@ impl Widget for DiagramView {
                 cx,
                 &mut self.draw_rect,
                 &mut self.draw_rounded,
-                &mut self.draw_rounded_tag,
                 &mut self.draw_text,
                 bounds_rect.pos,
                 &l.primitives,
