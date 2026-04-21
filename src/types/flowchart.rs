@@ -233,7 +233,7 @@ fn draw_node(
 
     out.push(Primitive::Text {
         x: cx,
-        y: cy + theme.typography.label_size * 0.35,
+        y: cy - theme.typography.label_size * 0.35,
         text: node.label.clone(),
         font_size: theme.typography.label_size,
         color: theme.palette.ink,

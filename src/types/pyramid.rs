@@ -153,7 +153,7 @@ pub fn layout_pyramid(spec: &PyramidSpec, ctx: &LayoutContext) -> DiagramLayout 
         let mid_y = (y_top + y_bot) / 2.0;
         out.push(Primitive::Text {
             x: cx,
-            y: mid_y + theme.typography.label_size * 0.1,
+            y: mid_y - theme.typography.label_size * 0.5,
             text: level.label.clone(),
             font_size: theme.typography.label_size,
             color: theme.palette.ink,

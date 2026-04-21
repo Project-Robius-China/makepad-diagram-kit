@@ -289,9 +289,9 @@ pub fn layout_tree(spec: &TreeSpec, ctx: &LayoutContext) -> DiagramLayout {
         // label sits above center; without, dead center.
         let has_sub = n.node.sublabel.is_some();
         let label_y = if has_sub {
-            n.y + NODE_HEIGHT * 0.38 + theme.typography.label_size * 0.35
+            n.y + NODE_HEIGHT * 0.38 - theme.typography.label_size * 0.35
         } else {
-            n.y + NODE_HEIGHT / 2.0 + theme.typography.label_size * 0.35
+            n.y + NODE_HEIGHT / 2.0 - theme.typography.label_size * 0.35
         };
         let label_color = if n.accent {
             theme.palette.accent
