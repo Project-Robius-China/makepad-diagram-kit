@@ -213,7 +213,7 @@ pub fn layout_tree(spec: &TreeSpec, ctx: &LayoutContext) -> DiagramLayout {
     // Nodes
     for n in &nodes {
         let fill = if n.accent {
-            theme.palette.accent.with_alpha(32)
+            theme.palette.accent
         } else {
             theme.palette.paper
         };
