@@ -28,15 +28,6 @@ script_mod! {
     set_type_default() do #(DrawRoundedRect::script_shader(vm)){
         ..mod.draw.DrawQuad
 
-        // `instance` keyword declares per-draw-call attributes. Without
-        // this each #[live] struct field becomes a uniform shared
-        // across the shader batch, which caused small eyebrow tags to
-        // inherit the node's 6-lpx radius and render as pills.
-        instance color: vec4(0.0, 0.0, 0.0, 0.0)
-        instance border_color: vec4(0.0, 0.0, 0.0, 0.0)
-        instance border_size: 0.0
-        instance border_radius: 2.0
-
         pixel: fn() {
             let sdf = Sdf2d.viewport(self.pos * self.rect_size)
             let inset = self.border_size

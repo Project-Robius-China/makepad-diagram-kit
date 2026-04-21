@@ -358,19 +358,42 @@ pub fn render_primitives(
                 stroke,
                 stroke_width,
                 corner_radius,
-            } => render_rect_rounded(
-                cx,
-                draw_rounded,
-                origin,
-                *x,
-                *y,
-                *w,
-                *h,
-                *fill,
-                *stroke,
-                *stroke_width,
-                *corner_radius,
-            ),
+            } => {
+                // Dispatch: short rects (eyebrow tags, height < 18) use the
+                // plain DrawColor fill+4-border path so they always render
+                // with the exact stroke width and no SDF radius surprises.
+                // Taller rects (nodes) go through the rounded shader for
+                // editorial radius.
+                if *h < 18.0 {
+                    render_rect(
+                        cx,
+                        draw_rect,
+                        origin,
+                        *x,
+                        *y,
+                        *w,
+                        *h,
+                        *fill,
+                        *stroke,
+                        *stroke_width,
+                        *corner_radius,
+                    );
+                } else {
+                    render_rect_rounded(
+                        cx,
+                        draw_rounded,
+                        origin,
+                        *x,
+                        *y,
+                        *w,
+                        *h,
+                        *fill,
+                        *stroke,
+                        *stroke_width,
+                        *corner_radius,
+                    );
+                }
+            }
             Primitive::Polygon {
                 points,
                 fill,
