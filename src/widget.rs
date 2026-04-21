@@ -26,7 +26,6 @@ script_mod! {
     mod.widgets.DiagramView = set_type_default() do mod.widgets.DiagramViewBase{
         width: Fill
         height: Fit
-        padding: Inset{left: 8 right: 8 top: 8 bottom: 8}
         min_height: 220.0
         draw_rect +: {
             color: #faf7f2
