@@ -28,16 +28,6 @@ script_mod! {
     set_type_default() do #(DrawRoundedRect::script_shader(vm)){
         ..mod.draw.DrawQuad
 
-        // Explicit `instance(...)` so each draw_abs carries its own
-        // radius / border. Without this declaration Makepad treats
-        // `#[live]` fields as uniforms, meaning every rect in a batch
-        // shares the same values — which turns small tags into pills
-        // when node radius is set last.
-        color: instance(#0000)
-        border_color: instance(#0000)
-        border_size: instance(0.0)
-        border_radius: instance(2.0)
-
         pixel: fn() {
             let sdf = Sdf2d.viewport(self.pos * self.rect_size)
             let inset = self.border_size
@@ -85,10 +75,15 @@ script_mod! {
             color: #faf7f2
         }
         draw_rounded +: {
-            color: #faf7f2
-            border_color: #1c1917
-            border_size: 1.0
-            border_radius: 6.0
+            // `instance(...)` promotes these fields to per-draw-call
+            // attributes; without it, Makepad treats #[live] struct
+            // fields as uniforms shared across every rect in a batch,
+            // which makes small tags (intended radius 2 at 12-lpx
+            // height) inherit the node's radius 6 and turn into pills.
+            color: instance(#faf7f2)
+            border_color: instance(#1c1917)
+            border_size: instance(1.0)
+            border_radius: instance(6.0)
         }
         draw_dot_pattern +: {
             color: #1c1917
