@@ -280,19 +280,53 @@ pub fn render_arrow(
     }
     fill_rect.color = color_to_vec4(color);
     render_edge(cx, fill_rect, origin, from, to, stroke_width);
-    // Arrowhead approximation — a 6 lpx square centred at `to`. Suitable for
-    // vertical flowchart arrows which are the dominant arrow case in v1.
-    const HEAD_SIZE: f32 = 6.0;
-    fill_rect.draw_abs(
-        cx,
-        sanitize_rect(world_rect(
-            origin,
-            to.x - HEAD_SIZE * 0.5,
-            to.y - HEAD_SIZE * 0.5,
-            HEAD_SIZE,
-            HEAD_SIZE,
-        )),
-    );
+    // Arrowhead — 4-step horizontal trapezoid staircase approximating a
+    // downward-pointing triangle. Each step is ~25% narrower than the
+    // one above it, so the silhouette reads as a triangle rather than a
+    // square. Direction-aware: for vertical-down arrows (from.y < to.y)
+    // the tip points down; for vertical-up arrows the tip points up;
+    // horizontal arrows still get a square (v1 flowchart is vertical
+    // only, so that edge case is rare).
+    let dy = to.y - from.y;
+    let dx = to.x - from.x;
+    const HEAD_W: f32 = 8.0;
+    const HEAD_H: f32 = 6.0;
+    const STEPS: usize = 4;
+    if dy.abs() > dx.abs() {
+        let down = dy > 0.0;
+        for i in 0..STEPS {
+            let t = i as f32 / STEPS as f32;
+            let w = HEAD_W * (1.0 - t);
+            let step_h = HEAD_H / STEPS as f32;
+            let sy = if down {
+                to.y - HEAD_H + (i as f32) * step_h
+            } else {
+                to.y + (STEPS - 1 - i) as f32 * step_h - HEAD_H + (STEPS as f32) * step_h
+            };
+            fill_rect.draw_abs(
+                cx,
+                sanitize_rect(world_rect(
+                    origin,
+                    to.x - w * 0.5,
+                    sy,
+                    w,
+                    step_h,
+                )),
+            );
+        }
+    } else {
+        // Horizontal — fall back to small square (rare in v1).
+        fill_rect.draw_abs(
+            cx,
+            sanitize_rect(world_rect(
+                origin,
+                to.x - HEAD_W * 0.5,
+                to.y - HEAD_H * 0.5,
+                HEAD_W,
+                HEAD_H,
+            )),
+        );
+    }
 }
 
 /// Paint a kit `Primitive::Text`. Font + base size are controlled by the

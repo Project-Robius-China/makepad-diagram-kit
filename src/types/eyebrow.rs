@@ -70,13 +70,13 @@ pub(crate) fn push_eyebrow(
         corner_radius: TAG_RADIUS,
     });
 
-    // Centred text inside the tag box. Makepad's DrawText uses `pos.y`
-    // as the glyph's top-of-ascent; for uppercase text the visible cap
-    // height is ~70% of font_size, so vertical-centre formula is
-    // `box_top + (box_h - cap_height) / 2` = y + (H - 0.7F) / 2.
+    // Centred text inside the tag box. Empirically Makepad renders the
+    // glyph top ~2 lpx above `pos.y` at small sizes (internal ascent +
+    // leading), so we shift further down by ~0.5 of the font size from
+    // the top to land the visual mid-line on the box center.
     out.push(Primitive::Text {
         x: x + w / 2.0,
-        y: y + (TAG_HEIGHT - TAG_FONT_SIZE * 0.7) * 0.5,
+        y: y + TAG_HEIGHT * 0.5,
         text: upper,
         font_size: TAG_FONT_SIZE,
         color: stroke,
