@@ -21,6 +21,50 @@ script_mod! {
     use mod.draw
     use mod.text.*
 
+    // Rounded-rect shader for node boxes. Per-rect `border_radius`,
+    // `border_color`, `border_size` are `#[live]` instance fields on the
+    // `DrawRoundedRect` struct below — set them from Rust before each
+    // `draw_abs` and the SDF honours them per instance.
+    set_type_default() do #(DrawRoundedRect::script_shader(vm)){
+        ..mod.draw.DrawQuad
+
+        pixel: fn() {
+            let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+            let inset = self.border_size
+            sdf.box(
+                inset
+                inset
+                self.rect_size.x - inset * 2.0
+                self.rect_size.y - inset * 2.0
+                max(1.0 self.border_radius)
+            )
+            sdf.fill_keep(self.color)
+            if self.border_size > 0.0 {
+                sdf.stroke(self.border_color self.border_size)
+            }
+            return sdf.result
+        }
+    }
+
+    // Dot-pattern background shader. A full-canvas quad that steps a grid
+    // and draws a small dot at each cell corner. `tile`, `radius`, and the
+    // dot `color` are uniforms — the pattern is identical across the
+    // widget so per-instance variation isn't required.
+    set_type_default() do #(DrawDotPattern::script_shader(vm)){
+        ..mod.draw.DrawQuad
+
+        pixel: fn() {
+            let p = self.pos * self.rect_size
+            let tile = max(2.0 self.tile)
+            // Compute per-cell coordinates via fract — avoids any
+            // collision with the `mod` DSL keyword used for imports.
+            let cell = vec2(fract(p.x / tile) fract(p.y / tile)) * tile
+            let d = length(cell - vec2(self.radius self.radius))
+            let a = smoothstep(self.radius self.radius - 1.0 d)
+            return vec4(self.color.rgb * self.color.a * a self.color.a * a)
+        }
+    }
+
     mod.widgets.DiagramViewBase = #(DiagramView::register_widget(vm))
 
     mod.widgets.DiagramView = set_type_default() do mod.widgets.DiagramViewBase{
@@ -30,6 +74,17 @@ script_mod! {
         draw_rect +: {
             color: #faf7f2
         }
+        draw_rounded +: {
+            color: #faf7f2
+            border_color: #1c1917
+            border_size: 1.0
+            border_radius: 6.0
+        }
+        draw_dot_pattern +: {
+            color: #1c1917
+            tile: 22.0
+            radius: 1.0
+        }
         draw_text +: {
             color: #1c1917
             text_style: theme.font_regular{
@@ -38,6 +93,41 @@ script_mod! {
             }
         }
     }
+}
+
+/// Custom DrawQuad subclass that renders a filled rounded rectangle with an
+/// optional border. All four fields are `#[live]` instance attributes so the
+/// caller can vary radius/border per-rect without starting a new draw call.
+#[derive(Script, ScriptHook, Debug)]
+#[repr(C)]
+pub struct DrawRoundedRect {
+    #[deref]
+    pub draw_super: DrawQuad,
+    #[live]
+    pub color: Vec4f,
+    #[live]
+    pub border_color: Vec4f,
+    #[live]
+    pub border_size: f32,
+    #[live]
+    pub border_radius: f32,
+}
+
+/// Custom DrawQuad subclass that paints a dot-grid pattern across its
+/// rectangle. Used once per DiagramView to give the canvas the editorial
+/// "graph paper" feel. All three fields are `#[live]` so the app DSL can
+/// tweak the density / dot color without recompiling.
+#[derive(Script, ScriptHook, Debug)]
+#[repr(C)]
+pub struct DrawDotPattern {
+    #[deref]
+    pub draw_super: DrawQuad,
+    #[live]
+    pub color: Vec4f,
+    #[live]
+    pub tile: f32,
+    #[live]
+    pub radius: f32,
 }
 
 /// Inline diagram widget. Accepts a JSON body through `set_text`, parses it,
@@ -51,6 +141,13 @@ pub struct DiagramView {
     #[redraw]
     #[live]
     pub draw_rect: DrawColor,
+    /// Rounded-rect pass — used for every `Primitive::Rect` so node boxes
+    /// pick up the v1.2 editorial radius without 4-border-rect slivers.
+    #[live]
+    pub draw_rounded: DrawRoundedRect,
+    /// Full-canvas dot pattern painted once before the primitives.
+    #[live]
+    pub draw_dot_pattern: DrawDotPattern,
     #[live]
     pub draw_text: DrawText,
     #[walk]
@@ -181,18 +278,32 @@ impl Widget for DiagramView {
             return DrawStep::done();
         }
 
-        // Happy path: walk the turtle, paint the paper, then draw every
-        // primitive at the resolved origin.
+        // Happy path: walk the turtle, paint the paper + dot pattern, then
+        // draw every primitive at the resolved origin.
         let bounds_rect = cx.walk_turtle(walk);
 
         // Paper fill covering the widget's walk area.
         self.draw_rect.color = color_to_vec4(self.theme.palette.paper);
         self.draw_rect.draw_abs(cx, bounds_rect);
 
+        // Dot-pattern overlay at ~10% opacity of `ink` on `paper`. The
+        // shader reads `self.color` as straight RGBA so we inject the
+        // ink colour and let its alpha set the pattern opacity.
+        let ink = self.theme.palette.ink;
+        let dot_color = vec4(
+            ink.r as f32 / 255.0,
+            ink.g as f32 / 255.0,
+            ink.b as f32 / 255.0,
+            0.10,
+        );
+        self.draw_dot_pattern.color = dot_color;
+        self.draw_dot_pattern.draw_abs(cx, bounds_rect);
+
         if let Some(l) = self.current_layout.take() {
             render_primitives(
                 cx,
                 &mut self.draw_rect,
+                &mut self.draw_rounded,
                 &mut self.draw_text,
                 bounds_rect.pos,
                 &l.primitives,

@@ -14,6 +14,12 @@ pub mod pyramid;
 pub mod quadrant;
 pub mod tree;
 
+// Shared eyebrow-tag helper used by node-based diagram types (tree,
+// flowchart, pyramid). Kept package-private: consumers should not render
+// tags directly — they set `tag: Option<String>` on nodes and the layout
+// engines emit the primitives.
+pub(crate) mod eyebrow;
+
 pub use flowchart::{FlowchartSpec, layout_flowchart};
 pub use layers::{LayersSpec, layout_layers};
 pub use pyramid::{PyramidSpec, layout_pyramid};

@@ -8,22 +8,22 @@
 //!
 //! | Primitive | Draw call |
 //! |-----------|-----------|
-//! | `Rect`    | Single `DrawColor` rect (+ optional border as 4 thin rects) |
+//! | `Rect`    | `DrawRoundedRect` SDF (single pass, per-rect radius + border) |
 //! | `Polygon` | Axis-aligned bounding rect (documented approximation — v1 only emits trapezoids/diamonds where AABB reads reasonably) |
 //! | `Line`    | Axis-aligned or thin rotated rect — implemented as AABB-approx thin rect (no shader) |
 //! | `Arrow`   | Line shaft + two filled triangle-edge rects for the head |
 //! | `Text`    | Single `DrawText` call with `text_style` inherited from the widget DSL |
 //!
-//! # Why no SDF / custom shader
+//! # SDF usage
 //!
-//! The pyramid/flowchart polygons are simple trapezoids and diamonds. Both
-//! read well as axis-aligned bounding rects at editorial scale (≤500 lpx
-//! canvas). A custom `Sdf2d` polygon shader would require per-widget shader
-//! discovery boilerplate with no visible payoff for v1. This is a documented
-//! approximation — see the `render_polygon` docstring.
+//! Rects go through an `Sdf2d.box(... radius)` pass so corner radius is
+//! honoured per-instance — the pattern mirrors makepad's `RoundedView`.
+//! Polygons/lines/arrows keep the plain `DrawColor` path since their
+//! silhouettes are already axis-aligned strips.
 
 use crate::primitive::{LineStyle, Point, Primitive, TextAlign};
 use crate::theme::Color;
+use crate::widget::DrawRoundedRect;
 use makepad_widgets::makepad_draw::*;
 
 /// Convert a kit [`Color`] (0..=255 RGBA) to a Makepad `Vec4f` (0..=1.0 RGBA).
@@ -74,7 +74,36 @@ fn sanitize_rect(mut r: Rect) -> Rect {
     r
 }
 
-/// Paint a kit `Primitive::Rect` — fill + optional 1..=N lpx stroke.
+/// Paint a kit `Primitive::Rect` using the `DrawRoundedRect` SDF shader —
+/// single draw call honouring per-rect `corner_radius`, fill, and stroke.
+#[allow(clippy::too_many_arguments)]
+pub fn render_rect_rounded(
+    cx: &mut Cx2d,
+    rounded: &mut DrawRoundedRect,
+    origin: Vec2d,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    fill: Color,
+    stroke: Color,
+    stroke_width: f32,
+    corner_radius: f32,
+) {
+    // Set per-instance shader inputs. These are `#[live]` on
+    // `DrawRoundedRect`, so each assignment plus `draw_abs` flushes as a
+    // fresh instance with its own radius / border.
+    rounded.color = color_to_vec4(fill);
+    rounded.border_color = color_to_vec4(stroke);
+    rounded.border_size = if stroke.a > 0 { stroke_width.max(0.0) } else { 0.0 };
+    rounded.border_radius = corner_radius.max(0.0);
+    rounded.draw_abs(cx, world_rect(origin, x, y, w, h));
+}
+
+/// Paint a kit `Primitive::Rect` as a plain `DrawColor` fill + 4 thin border
+/// rects. Retained for the rare case where a rounded shader isn't hooked up
+/// (falls back to sharp corners). Most callers should use
+/// [`render_rect_rounded`] instead.
 #[allow(clippy::too_many_arguments)]
 pub fn render_rect(
     cx: &mut Cx2d,
@@ -306,9 +335,14 @@ pub fn render_text(
 ///
 /// `origin` is the widget's top-left in world coordinates. Primitives are in
 /// kit-local (top-left-origin, logical-pixel) space.
+///
+/// Rect primitives go through the rounded-SDF shader so `corner_radius` is
+/// honoured. Lines, arrows, polygons still use the plain `DrawColor` since
+/// they're axis-aligned strips that don't need rounded corners.
 pub fn render_primitives(
     cx: &mut Cx2d,
     draw_rect: &mut DrawColor,
+    draw_rounded: &mut DrawRoundedRect,
     draw_text: &mut DrawText,
     origin: Vec2d,
     primitives: &[Primitive],
@@ -324,9 +358,9 @@ pub fn render_primitives(
                 stroke,
                 stroke_width,
                 corner_radius,
-            } => render_rect(
+            } => render_rect_rounded(
                 cx,
-                draw_rect,
+                draw_rounded,
                 origin,
                 *x,
                 *y,

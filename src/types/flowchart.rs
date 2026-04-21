@@ -35,6 +35,26 @@ pub struct FlowNode {
     pub label: String,
     #[serde(default)]
     pub shape: FlowShape,
+    /// Optional eyebrow tag rendered in the top-left corner.
+    #[serde(default)]
+    pub tag: Option<String>,
+}
+
+/// Semantic role for a flowchart edge. Drives stroke + label color.
+///
+/// * `Default` — regular flow, muted stroke (current v1 behaviour).
+/// * `Primary` — load-bearing edge (e.g., "SSR", "main path"); accent hue.
+/// * `External` — crosses a trust / system boundary (e.g., "HTTPS"); link hue.
+///
+/// Matches the editorial reference in
+/// `diagram-design/assets/example-architecture.html`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum EdgeRole {
+    #[default]
+    Default,
+    Primary,
+    External,
 }
 
 /// One edge between two nodes. `from` / `to` reference node `id` strings.
@@ -44,6 +64,8 @@ pub struct FlowEdge {
     pub to: String,
     #[serde(default)]
     pub label: Option<String>,
+    #[serde(default)]
+    pub role: EdgeRole,
 }
 
 /// JSON schema.
@@ -196,6 +218,19 @@ fn draw_node(
         }
     }
 
+    // Eyebrow tag — only makes visual sense for Rect/Oval (the diamond has
+    // no well-defined top-left corner). Skipped for FlowShape::Diamond.
+    if let Some(tag) = &node.tag
+        && !matches!(node.shape, FlowShape::Diamond)
+    {
+        let tag_color = if accent {
+            theme.palette.accent
+        } else {
+            theme.palette.ink
+        };
+        crate::types::eyebrow::push_eyebrow(out, x, y, tag, tag_color);
+    }
+
     out.push(Primitive::Text {
         x: cx,
         y: cy + theme.typography.label_size * 0.35,
@@ -246,10 +281,18 @@ pub fn layout_flowchart(spec: &FlowchartSpec, ctx: &LayoutContext) -> DiagramLay
         };
         let from = Point::new(cx, y_center[a] + NODE_HEIGHT / 2.0);
         let to = Point::new(cx, y_center[b] - NODE_HEIGHT / 2.0);
+        // Role → stroke color. Primary uses accent, External uses link
+        // (blue), Default uses muted. The label tracks the stroke so role
+        // reads consistently.
+        let edge_color = match edge.role {
+            EdgeRole::Default => theme.palette.muted,
+            EdgeRole::Primary => theme.palette.accent,
+            EdgeRole::External => theme.palette.link,
+        };
         out.push(Primitive::Arrow {
             from,
             to,
-            color: theme.palette.muted,
+            color: edge_color,
             stroke_width: theme.stroke_default,
         });
         if let Some(lbl) = &edge.label {
@@ -261,7 +304,7 @@ pub fn layout_flowchart(spec: &FlowchartSpec, ctx: &LayoutContext) -> DiagramLay
                 y: my,
                 text: lbl.clone(),
                 font_size: theme.typography.annotation_size,
-                color: theme.palette.muted,
+                color: edge_color,
                 align: TextAlign::Left,
                 weight: TextWeight::Regular,
             });
@@ -288,16 +331,19 @@ mod tests {
                     id: "start".into(),
                     label: "Start".into(),
                     shape: FlowShape::Oval,
+                    tag: None,
                 },
                 FlowNode {
                     id: "check".into(),
                     label: "OK?".into(),
                     shape: FlowShape::Diamond,
+                    tag: None,
                 },
                 FlowNode {
                     id: "end".into(),
                     label: "End".into(),
                     shape: FlowShape::Oval,
+                    tag: None,
                 },
             ],
             edges: vec![
@@ -305,11 +351,13 @@ mod tests {
                     from: "start".into(),
                     to: "check".into(),
                     label: None,
+                    role: EdgeRole::Default,
                 },
                 FlowEdge {
                     from: "check".into(),
                     to: "end".into(),
                     label: Some("yes".into()),
+                    role: EdgeRole::Default,
                 },
             ],
             accent_idx: None,
@@ -380,6 +428,7 @@ mod tests {
                 id: format!("n{i}"),
                 label: format!("N{i}"),
                 shape: FlowShape::Rect,
+                tag: None,
             });
         }
         let w = warnings(&spec);
@@ -394,5 +443,84 @@ mod tests {
             spec.validate(),
             Err(ParseError::AccentOutOfRange { .. })
         ));
+    }
+
+    #[test]
+    fn edge_role_colors() {
+        // Scenario: three edges with Default / Primary / External roles →
+        // their arrow strokes must match muted / accent / link.
+        let spec = FlowchartSpec {
+            nodes: vec![
+                FlowNode {
+                    id: "a".into(),
+                    label: "A".into(),
+                    shape: FlowShape::Rect,
+                    tag: None,
+                },
+                FlowNode {
+                    id: "b".into(),
+                    label: "B".into(),
+                    shape: FlowShape::Rect,
+                    tag: None,
+                },
+                FlowNode {
+                    id: "c".into(),
+                    label: "C".into(),
+                    shape: FlowShape::Rect,
+                    tag: None,
+                },
+                FlowNode {
+                    id: "d".into(),
+                    label: "D".into(),
+                    shape: FlowShape::Rect,
+                    tag: None,
+                },
+            ],
+            edges: vec![
+                FlowEdge {
+                    from: "a".into(),
+                    to: "b".into(),
+                    label: None,
+                    role: EdgeRole::Default,
+                },
+                FlowEdge {
+                    from: "b".into(),
+                    to: "c".into(),
+                    label: Some("SSR".into()),
+                    role: EdgeRole::Primary,
+                },
+                FlowEdge {
+                    from: "c".into(),
+                    to: "d".into(),
+                    label: Some("HTTPS".into()),
+                    role: EdgeRole::External,
+                },
+            ],
+            accent_idx: None,
+        };
+        let ctx = LayoutContext::new(400.0, 500.0);
+        let layout = layout_flowchart(&spec, &ctx);
+
+        let pal = ctx.theme.palette;
+        let arrow_colors: Vec<_> = layout
+            .primitives
+            .iter()
+            .filter_map(|p| match p {
+                Primitive::Arrow { color, .. } => Some(*color),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(arrow_colors, vec![pal.muted, pal.accent, pal.link]);
+
+        // The label for a Primary edge uses the accent color, External uses
+        // link — verified by scanning the text primitives.
+        let has_primary_label = layout.primitives.iter().any(|p| {
+            matches!(p, Primitive::Text { text, color, .. } if text == "SSR" && *color == pal.accent)
+        });
+        assert!(has_primary_label, "Primary edge label must use accent");
+        let has_external_label = layout.primitives.iter().any(|p| {
+            matches!(p, Primitive::Text { text, color, .. } if text == "HTTPS" && *color == pal.link)
+        });
+        assert!(has_external_label, "External edge label must use link");
     }
 }

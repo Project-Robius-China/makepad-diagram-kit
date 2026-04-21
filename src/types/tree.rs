@@ -21,6 +21,10 @@ pub struct TreeNode {
     pub label: String,
     #[serde(default)]
     pub sublabel: Option<String>,
+    /// Optional eyebrow tag rendered in the top-left of the node box — e.g.
+    /// "ROOT", "CAT", "EXT". Uppercase mono, small.
+    #[serde(default)]
+    pub tag: Option<String>,
     #[serde(default)]
     pub children: Vec<TreeNode>,
 }
@@ -259,8 +263,9 @@ pub fn layout_tree(spec: &TreeSpec, ctx: &LayoutContext) -> DiagramLayout {
         } else {
             (theme.palette.paper, theme.palette.ink, theme.stroke_default)
         };
+        let node_x = n.cx - NODE_WIDTH / 2.0;
         out.push(Primitive::Rect {
-            x: n.cx - NODE_WIDTH / 2.0,
+            x: node_x,
             y: n.y,
             w: NODE_WIDTH,
             h: NODE_HEIGHT,
@@ -269,6 +274,17 @@ pub fn layout_tree(spec: &TreeSpec, ctx: &LayoutContext) -> DiagramLayout {
             stroke_width: stroke_w,
             corner_radius: theme.corner_radius,
         });
+        // Eyebrow tag: small outlined pill in the top-left. Tag text is the
+        // user-supplied `tag` on the node; color tracks the node's role
+        // (accent hue for the focal node, otherwise the same ink stroke).
+        if let Some(tag) = &n.node.tag {
+            let tag_color = if n.accent {
+                theme.palette.accent
+            } else {
+                theme.palette.ink
+            };
+            crate::types::eyebrow::push_eyebrow(&mut out, node_x, n.y, tag, tag_color);
+        }
         // Primary label. Sublabel-aware vertical offset: with a sublabel the
         // label sits above center; without, dead center.
         let has_sub = n.node.sublabel.is_some();
@@ -316,18 +332,22 @@ mod tests {
             root: TreeNode {
                 label: "A".into(),
                 sublabel: None,
+                tag: None,
                 children: vec![
                     TreeNode {
                         label: "B".into(),
                         sublabel: None,
+                        tag: None,
                         children: vec![],
                     },
                     TreeNode {
                         label: "C".into(),
                         sublabel: None,
+                        tag: None,
                         children: vec![TreeNode {
                             label: "D".into(),
                             sublabel: None,
+                            tag: None,
                             children: vec![],
                         }],
                     },
@@ -456,12 +476,14 @@ mod tests {
         let mut root = TreeNode {
             label: "root".into(),
             sublabel: None,
+            tag: None,
             children: Vec::new(),
         };
         for i in 0..25 {
             root.children.push(TreeNode {
                 label: format!("c{i}"),
                 sublabel: None,
+                tag: None,
                 children: vec![],
             });
         }
@@ -471,5 +493,33 @@ mod tests {
         };
         let w = warnings(&spec);
         assert_eq!(w.len(), 1);
+    }
+
+    #[test]
+    fn eyebrow_tag_rendered() {
+        // Scenario: a TreeNode with `tag: Some("ROOT")` generates exactly 2
+        // extra primitives — the outline rect and the uppercase text —
+        // beyond the 4 nodes already in the sample tree.
+        let mut spec = sample_tree();
+        spec.root.tag = Some("root".into()); // lowercase input — should uppercase
+        let ctx = LayoutContext::new(800.0, 400.0);
+        let with_tag = layout_tree(&spec, &ctx).primitives.len();
+
+        let mut baseline_spec = sample_tree();
+        baseline_spec.root.tag = None;
+        let baseline = layout_tree(&baseline_spec, &ctx).primitives.len();
+
+        assert_eq!(
+            with_tag,
+            baseline + 2,
+            "eyebrow tag must add exactly a rect + a text primitive"
+        );
+
+        // And the text is uppercased.
+        let had_root_text = layout_tree(&spec, &ctx)
+            .primitives
+            .iter()
+            .any(|p| matches!(p, Primitive::Text { text, .. } if text == "ROOT"));
+        assert!(had_root_text, "eyebrow text must be uppercased");
     }
 }

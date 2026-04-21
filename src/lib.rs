@@ -93,6 +93,7 @@ pub use types::{
     Diagram, FlowchartSpec, LayersSpec, PyramidSpec, QuadrantSpec, TreeSpec, layout_flowchart,
     layout_layers, layout_pyramid, layout_quadrant, layout_tree,
 };
+pub use types::flowchart::EdgeRole;
 
 /// Hard and soft limits enforced during parsing.
 ///

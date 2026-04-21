@@ -22,6 +22,10 @@ pub struct PyramidLevel {
     /// Optional mono-font sublabel (e.g., frequency or size hint).
     #[serde(default)]
     pub sublabel: Option<String>,
+    /// Optional eyebrow tag (rendered above the label, left-anchored near
+    /// the trapezoid's top edge).
+    #[serde(default)]
+    pub tag: Option<String>,
 }
 
 /// JSON schema: `{"type":"pyramid","levels":[...], "accent_idx":optional}`.
@@ -131,6 +135,19 @@ pub fn layout_pyramid(spec: &PyramidSpec, ctx: &LayoutContext) -> DiagramLayout 
             stroke_width: theme.stroke_default,
         });
 
+        // Optional eyebrow tag — anchored inside the trapezoid's top-left
+        // corner. The trapezoid narrows with `i` so we use `top_l` (the
+        // actual top-left vertex) rather than an AABB corner; this keeps
+        // the tag visually inside the shape for every level.
+        if let Some(tag) = &level.tag {
+            let tag_color = if is_accent {
+                theme.palette.accent
+            } else {
+                theme.palette.ink
+            };
+            crate::types::eyebrow::push_eyebrow(&mut out, top_l, y_top, tag, tag_color);
+        }
+
         // Centered label — pyramid convention draws it slightly above the
         // vertical midline so the sublabel sits below it cleanly.
         let mid_y = (y_top + y_bot) / 2.0;
@@ -171,14 +188,17 @@ mod tests {
                 PyramidLevel {
                     label: "Mission".into(),
                     sublabel: None,
+                    tag: None,
                 },
                 PyramidLevel {
                     label: "Strategy".into(),
                     sublabel: None,
+                    tag: None,
                 },
                 PyramidLevel {
                     label: "Tactics".into(),
                     sublabel: None,
+                    tag: None,
                 },
             ],
             accent_idx: None,
@@ -248,6 +268,7 @@ mod tests {
             .map(|i| PyramidLevel {
                 label: format!("L{i}"),
                 sublabel: None,
+                tag: None,
             })
             .collect();
         let spec = PyramidSpec {

@@ -86,6 +86,10 @@ pub struct Palette {
     pub rule: Color,
     /// Leaf-node fill tint (`ink @ 5% alpha`).
     pub leaf_tint: Color,
+    /// External / cross-system link color (HTTPS, API calls, blue).
+    /// Used by [`crate::types::flowchart::EdgeRole::External`] and any future
+    /// external-arrow primitives.
+    pub link: Color,
 }
 
 /// Typography knobs. Sizes are in logical pixels (lpx).
@@ -142,6 +146,7 @@ impl Theme {
                 soft: Color::hex("#78716c"),
                 rule: Color::rgba(28, 25, 23, 30), // ink @ ~12% alpha
                 leaf_tint: Color::rgba(28, 25, 23, 13), // ink @ ~5% alpha
+                link: Color::hex("#2563eb"),
             },
             typography: Typography {
                 label_size: 12.0,
@@ -170,6 +175,7 @@ impl Theme {
                 soft: Color::hex("#8e8680"),
                 rule: Color::rgba(250, 247, 242, 30),
                 leaf_tint: Color::rgba(250, 247, 242, 13),
+                link: Color::hex("#60a5fa"),
             },
             typography: Typography {
                 label_size: 12.0,
@@ -195,5 +201,19 @@ mod tests {
     #[test]
     fn light_and_dark_differ() {
         assert_ne!(Theme::light().palette.paper, Theme::dark().palette.paper);
+    }
+
+    #[test]
+    fn link_color_present() {
+        // Both skins must populate `link` — external-edge rendering relies
+        // on it. Light `link` ≠ dark `link` so regressions to a shared
+        // default value get caught.
+        assert_ne!(Theme::light().palette.link, Theme::dark().palette.link);
+        // Link should differ from ink / muted / accent in both skins — no
+        // accidental alias on a neighbour token.
+        let l = Theme::light().palette;
+        assert_ne!(l.link, l.ink);
+        assert_ne!(l.link, l.muted);
+        assert_ne!(l.link, l.accent);
     }
 }
