@@ -109,9 +109,12 @@ pub fn layout_pyramid(spec: &PyramidSpec, ctx: &LayoutContext) -> DiagramLayout 
         let bot_l = cx - w_bot / 2.0;
         let bot_r = cx + w_bot / 2.0;
 
+        // Role-based fill: accent level uses translucent tint + accent stroke
+        // (same editorial pattern as tree focal nodes). Non-accent levels use
+        // paper fill with a muted rule stroke for quiet visual rhythm.
         let is_accent = spec.accent_idx == Some(i);
         let (fill, stroke): (Color, Color) = if is_accent {
-            (theme.palette.accent, theme.palette.accent)
+            (theme.palette.accent_tint, theme.palette.accent)
         } else {
             (theme.palette.paper, theme.palette.rule)
         };

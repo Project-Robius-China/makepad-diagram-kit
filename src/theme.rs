@@ -70,14 +70,22 @@ const fn hex_nibble(c: u8) -> u8 {
 pub struct Palette {
     /// Page / canvas background; default node fill.
     pub paper: Color,
+    /// Secondary surface: container background, leaf fill.
+    pub paper_2: Color,
     /// Primary text, primary stroke.
     pub ink: Color,
     /// Focal / accent (one per diagram).
     pub accent: Color,
+    /// Translucent accent for focal-node fills (`accent @ 8% alpha`).
+    pub accent_tint: Color,
     /// Secondary text, default arrow stroke.
     pub muted: Color,
+    /// Sublabels, boundary labels — fainter than `muted`.
+    pub soft: Color,
     /// Hairline border color for dividers and rules.
     pub rule: Color,
+    /// Leaf-node fill tint (`ink @ 5% alpha`).
+    pub leaf_tint: Color,
 }
 
 /// Typography knobs. Sizes are in logical pixels (lpx).
@@ -126,10 +134,14 @@ impl Theme {
         Self {
             palette: Palette {
                 paper: Color::hex("#faf7f2"),
+                paper_2: Color::hex("#f2ede4"),
                 ink: Color::hex("#1c1917"),
                 accent: Color::hex("#b5523a"),
-                muted: Color::hex("#78716c"),
-                rule: Color::hex("#e7e5e4"),
+                accent_tint: Color::rgba(181, 82, 58, 20), // accent @ ~8% alpha
+                muted: Color::hex("#57534e"),
+                soft: Color::hex("#78716c"),
+                rule: Color::rgba(28, 25, 23, 30), // ink @ ~12% alpha
+                leaf_tint: Color::rgba(28, 25, 23, 13), // ink @ ~5% alpha
             },
             typography: Typography {
                 label_size: 12.0,
@@ -150,10 +162,14 @@ impl Theme {
         Self {
             palette: Palette {
                 paper: Color::hex("#1c1917"),
+                paper_2: Color::hex("#292524"),
                 ink: Color::hex("#faf7f2"),
                 accent: Color::hex("#d97757"),
+                accent_tint: Color::rgba(217, 119, 87, 25), // accent @ ~10% alpha
                 muted: Color::hex("#a8a29e"),
-                rule: Color::hex("#44403c"),
+                soft: Color::hex("#8e8680"),
+                rule: Color::rgba(250, 247, 242, 30),
+                leaf_tint: Color::rgba(250, 247, 242, 13),
             },
             typography: Typography {
                 label_size: 12.0,

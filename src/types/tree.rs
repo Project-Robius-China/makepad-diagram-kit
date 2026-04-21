@@ -84,8 +84,8 @@ pub(crate) fn warnings(spec: &TreeSpec) -> Vec<Warning> {
     }
 }
 
-const NODE_WIDTH: f32 = 140.0;
-const NODE_HEIGHT: f32 = 44.0;
+const NODE_WIDTH: f32 = 160.0;
+const NODE_HEIGHT: f32 = 48.0;
 const MIN_GAP: f32 = 20.0;
 const ROW_GAP: f32 = 36.0;
 
@@ -241,15 +241,23 @@ pub fn layout_tree(spec: &TreeSpec, ctx: &LayoutContext) -> DiagramLayout {
 
     // Nodes
     for n in &nodes {
-        let fill = if n.accent {
-            theme.palette.accent
+        // Role-based fills (mirrors diagram-design tree.html editorial skin):
+        //   - accent node        → accent_tint fill + accent stroke (focal)
+        //   - root (no parent)   → paper fill + ink stroke (branch head)
+        //   - branch (has kids)  → paper fill + ink stroke
+        //   - leaf               → leaf_tint (ink @ 5%) + soft stroke (thin 0.8)
+        let is_leaf = n.node.children.is_empty();
+        let is_root = n.parent.is_none();
+        let (fill, stroke, stroke_w) = if n.accent {
+            (
+                theme.palette.accent_tint,
+                theme.palette.accent,
+                theme.stroke_default,
+            )
+        } else if is_leaf && !is_root {
+            (theme.palette.leaf_tint, theme.palette.soft, 0.8)
         } else {
-            theme.palette.paper
-        };
-        let stroke = if n.accent {
-            theme.palette.accent
-        } else {
-            theme.palette.ink
+            (theme.palette.paper, theme.palette.ink, theme.stroke_default)
         };
         out.push(Primitive::Rect {
             x: n.cx - NODE_WIDTH / 2.0,
@@ -258,25 +266,38 @@ pub fn layout_tree(spec: &TreeSpec, ctx: &LayoutContext) -> DiagramLayout {
             h: NODE_HEIGHT,
             fill,
             stroke,
-            stroke_width: theme.stroke_default,
+            stroke_width: stroke_w,
             corner_radius: theme.corner_radius,
         });
+        // Primary label. Sublabel-aware vertical offset: with a sublabel the
+        // label sits above center; without, dead center.
+        let has_sub = n.node.sublabel.is_some();
+        let label_y = if has_sub {
+            n.y + NODE_HEIGHT * 0.38 + theme.typography.label_size * 0.35
+        } else {
+            n.y + NODE_HEIGHT / 2.0 + theme.typography.label_size * 0.35
+        };
+        let label_color = if n.accent {
+            theme.palette.accent
+        } else {
+            theme.palette.ink
+        };
         out.push(Primitive::Text {
             x: n.cx,
-            y: n.y + NODE_HEIGHT / 2.0 + theme.typography.label_size * 0.35,
+            y: label_y,
             text: n.node.label.clone(),
             font_size: theme.typography.label_size,
-            color: theme.palette.ink,
+            color: label_color,
             align: TextAlign::Center,
             weight: TextWeight::SemiBold,
         });
         if let Some(sub) = &n.node.sublabel {
             out.push(Primitive::Text {
                 x: n.cx,
-                y: n.y + NODE_HEIGHT - 6.0,
+                y: n.y + NODE_HEIGHT * 0.72,
                 text: sub.clone(),
                 font_size: theme.typography.sublabel_size,
-                color: theme.palette.muted,
+                color: theme.palette.soft,
                 align: TextAlign::Center,
                 weight: TextWeight::Regular,
             });
