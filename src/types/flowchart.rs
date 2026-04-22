@@ -231,9 +231,13 @@ fn draw_node(
         crate::types::eyebrow::push_eyebrow(out, x, y, tag, tag_color);
     }
 
+    // Shift label down when an eyebrow tag is present so they don't
+    // overlap horizontally at the node's midline.
+    let has_tag = node.tag.is_some() && !matches!(node.shape, FlowShape::Diamond);
+    let label_y = if has_tag { cy + 7.0 } else { cy };
     out.push(Primitive::Text {
         x: cx,
-        y: cy ,
+        y: label_y,
         text: node.label.clone(),
         font_size: theme.typography.label_size,
         color: theme.palette.ink,

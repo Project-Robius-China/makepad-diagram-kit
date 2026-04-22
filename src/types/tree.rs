@@ -285,14 +285,19 @@ pub fn layout_tree(spec: &TreeSpec, ctx: &LayoutContext) -> DiagramLayout {
             };
             crate::types::eyebrow::push_eyebrow(&mut out, node_x, n.y, tag, tag_color);
         }
-        // Primary label. Sublabel-aware vertical offset: with a sublabel the
-        // label sits above center; without, dead center.
+        // Primary label position. Shift down when an eyebrow tag is present
+        // so the label doesn't collide horizontally with it (tag sits top-left,
+        // label is horizontally centered — they overlap at the middle).
+        // Shift up when a sublabel is present so the sublabel sits below.
         let has_sub = n.node.sublabel.is_some();
-        let label_y = if has_sub {
-            n.y + NODE_HEIGHT * 0.38 
-        } else {
-            n.y + NODE_HEIGHT / 2.0 
-        };
+        let has_tag = n.node.tag.is_some();
+        let mut label_y = n.y + NODE_HEIGHT / 2.0;
+        if has_tag {
+            label_y += 7.0;
+        }
+        if has_sub {
+            label_y -= 5.0;
+        }
         let label_color = if n.accent {
             theme.palette.accent
         } else {
