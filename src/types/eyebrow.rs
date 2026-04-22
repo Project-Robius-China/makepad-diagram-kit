@@ -70,13 +70,15 @@ pub(crate) fn push_eyebrow(
         corner_radius: TAG_RADIUS,
     });
 
-    // Centred text inside the tag box. Empirically Makepad renders the
-    // glyph top ~2 lpx above `pos.y` at small sizes (internal ascent +
-    // leading), so we shift further down by ~0.5 of the font size from
-    // the top to land the visual mid-line on the box center.
+    // Centred text inside the tag box. Empirical iteration on Makepad's
+    // DrawText::draw_abs at small font sizes: neither `y + 3.5` (pure
+    // top-of-ascent assumption) nor `y + 8` (baseline assumption)
+    // landed visually centred. Middle value `y + 5.5` reads centred.
+    // The exact pos.y semantic isn't documented; treat the constant as
+    // tuned for 9-lpx mono caps in a 16-lpx tall tag box.
     out.push(Primitive::Text {
         x: x + w / 2.0,
-        y: y + TAG_HEIGHT * 0.5,
+        y: y + 5.5,
         text: upper,
         font_size: TAG_FONT_SIZE,
         color: stroke,
