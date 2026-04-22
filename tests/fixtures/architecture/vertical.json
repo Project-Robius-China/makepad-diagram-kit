@@ -1,0 +1,13 @@
+{
+  "type": "architecture",
+  "orientation": "tb",
+  "nodes": [
+    {"id": "user", "label": "User", "tag": "IN", "role": "input"},
+    {"id": "app", "label": "App Server", "tag": "APP", "role": "focal", "sublabel": "Rust · Axum"},
+    {"id": "db", "label": "Postgres", "tag": "DB", "role": "store"}
+  ],
+  "edges": [
+    {"from": "user", "to": "app", "label": "HTTPS", "role": "external"},
+    {"from": "app", "to": "db", "label": "SQL", "role": "primary"}
+  ]
+}

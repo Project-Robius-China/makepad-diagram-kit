@@ -8,12 +8,13 @@
 //! printer — can walk and paint. A Makepad-native binding is scaffolded under
 //! the `makepad` feature and will land in a later task.
 //!
-//! Five diagram types ship in v1:
+//! Six diagram types ship in v1:
 //! - `pyramid` — ranked trapezoid layers
 //! - `quadrant` — 2-axis scatter
 //! - `tree` — parent → children hierarchy
 //! - `layers` — stacked horizontal bands
 //! - `flowchart` — vertical decision flow
+//! - `architecture` — 2D layered system diagram (role-tagged boxes, colored edges)
 //!
 //! ## Quickstart
 //!
@@ -90,9 +91,11 @@ pub use primitive::{LineStyle, Point, Primitive, Rect, TextAlign, TextWeight};
 pub use streaming::parse_lossy;
 pub use theme::{Color, Palette, Theme, Typography};
 pub use types::{
-    Diagram, FlowchartSpec, LayersSpec, PyramidSpec, QuadrantSpec, TreeSpec, layout_flowchart,
-    layout_layers, layout_pyramid, layout_quadrant, layout_tree,
+    ArchitectureSpec, Diagram, FlowchartSpec, LayersSpec, PyramidSpec, QuadrantSpec, TreeSpec,
+    layout_architecture, layout_flowchart, layout_layers, layout_pyramid, layout_quadrant,
+    layout_tree,
 };
+pub use types::architecture::{NodeRole as ArchNodeRole, Orientation as ArchOrientation};
 pub use types::flowchart::EdgeRole;
 
 /// Hard and soft limits enforced during parsing.
@@ -118,6 +121,8 @@ impl DiagramLimits {
     pub const SOFT_CAP_QUADRANT: usize = types::quadrant::SOFT_CAP;
     /// Soft cap for layer rows.
     pub const SOFT_CAP_LAYERS: usize = types::layers::SOFT_CAP;
+    /// Soft cap for architecture nodes.
+    pub const SOFT_CAP_ARCHITECTURE: usize = types::architecture::SOFT_CAP;
 }
 
 /// Parse a full JSON diagram body.
@@ -166,6 +171,7 @@ pub fn parse(body: &str) -> Result<(Diagram, Vec<Warning>), ParseError> {
         Diagram::Tree(s) => s.validate()?,
         Diagram::Layers(s) => s.validate()?,
         Diagram::Flowchart(s) => s.validate()?,
+        Diagram::Architecture(s) => s.validate()?,
     }
 
     Ok((diagram.warnings(), diagram).rev_pair())
@@ -182,12 +188,19 @@ impl<A, B> RevPair<A, B> for (A, B) {
     }
 }
 
-/// Cheap pre-scan: find `"type"` and check it against the 5 known tags.
+/// Cheap pre-scan: find `"type"` and check it against the 6 known tags.
 /// Returns `Some(tag)` if the tag is present and unknown, `None` otherwise
 /// (including when `"type"` is missing — that case is deferred to
 /// `serde_json` for a standard Malformed error).
 fn pre_scan_unknown_type(body: &str) -> Option<String> {
-    const KNOWN: &[&str] = &["pyramid", "quadrant", "tree", "layers", "flowchart"];
+    const KNOWN: &[&str] = &[
+        "pyramid",
+        "quadrant",
+        "tree",
+        "layers",
+        "flowchart",
+        "architecture",
+    ];
     let marker = "\"type\"";
     let idx = body.find(marker)?;
     let rest = &body[idx + marker.len()..];

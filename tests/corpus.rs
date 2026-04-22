@@ -29,11 +29,17 @@ fn collect(type_dir: &str) -> Vec<(PathBuf, String)> {
 fn assert_accent_policy(diagram: &Diagram, layout: &makepad_diagram_kit::DiagramLayout) {
     use makepad_diagram_kit::Theme;
     let accent = Theme::light().palette.accent;
+    // Count only the *primary* shape per diagram — i.e. rects / polygons
+    // larger than the eyebrow-tag outline. The eyebrow pill is 16 lpx
+    // tall; a primary node rect is ≥ 40 lpx tall in every type, so a
+    // simple height gate cleanly separates them. This matches the intent
+    // of "one accented shape per diagram" (the focal node) without
+    // penalizing the focal node for also having an accent-tinted tag pill.
     let n_accented = layout
         .primitives
         .iter()
         .filter(|p| match p {
-            Primitive::Rect { stroke, .. } => *stroke == accent,
+            Primitive::Rect { stroke, h, .. } => *stroke == accent && *h >= 24.0,
             Primitive::Polygon { stroke, .. } => *stroke == accent,
             _ => false,
         })
@@ -41,7 +47,7 @@ fn assert_accent_policy(diagram: &Diagram, layout: &makepad_diagram_kit::Diagram
     // At most one accented primary shape per diagram.
     assert!(
         n_accented <= 1,
-        "{}: {n_accented} accented shapes (expected ≤ 1)",
+        "{}: {n_accented} accented primary shapes (expected ≤ 1)",
         diagram.type_tag()
     );
 }
@@ -103,4 +109,9 @@ fn corpus_layers() {
 #[test]
 fn corpus_flowchart() {
     run_corpus("flowchart");
+}
+
+#[test]
+fn corpus_architecture() {
+    run_corpus("architecture");
 }

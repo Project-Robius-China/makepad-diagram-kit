@@ -1,0 +1,17 @@
+{
+  "type": "architecture",
+  "orientation": "lr",
+  "nodes": [
+    {"id": "reader", "label": "Reader", "tag": "EXT", "role": "external"},
+    {"id": "edge", "label": "Cloudflare", "tag": "EDGE", "role": "backend", "sublabel": "Pages · cache"},
+    {"id": "orig", "label": "Astro Origin", "tag": "ORIG", "role": "focal", "sublabel": "SSR + MDX"},
+    {"id": "bun", "label": "MDX Bundle", "tag": "BUN", "role": "backend"},
+    {"id": "cms", "label": "Content CMS", "tag": "CMS", "role": "store"}
+  ],
+  "edges": [
+    {"from": "reader", "to": "edge", "label": "HTTPS", "role": "external"},
+    {"from": "edge", "to": "orig", "label": "SSR", "role": "primary"},
+    {"from": "orig", "to": "bun", "label": "READ MDX"},
+    {"from": "orig", "to": "cms", "label": "QUERY"}
+  ]
+}

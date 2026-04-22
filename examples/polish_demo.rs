@@ -5,6 +5,9 @@
 //! - rounded corners (automatic via the new `DrawRoundedRect` shader)
 //! - dot-pattern canvas background (painted automatically by `DiagramView`)
 //! - flowchart edge roles: `Default` / `Primary` (accent) / `External` (link)
+//! - architecture diagrams: 2D layered layout with role-tagged boxes and
+//!   colored edges (the `ARCHITECTURE_DEMO` constant below is the
+//!   diagram-design/assets/example-architecture.html equivalent)
 //!
 //! Run with:
 //! ```text
@@ -100,6 +103,31 @@ const FLOWCHART_MINIMAL: &str = r#"{
   "accent_idx": 1
 }"#;
 
+/// Architecture diagram — the README-equivalent of
+/// `robius/diagram-design/assets/example-architecture.html`. Role-tagged
+/// boxes (external / backend / focal / store) and colored edges (external
+/// = link/blue, primary = accent/coral, default = muted).
+///
+/// Reads left → right: Reader (browser) → Cloudflare (edge) → Astro Origin
+/// (focal SSR) → {MDX Bundle, Content CMS} (stored content).
+const ARCHITECTURE_DEMO: &str = r#"{
+  "type": "architecture",
+  "orientation": "lr",
+  "nodes": [
+    {"id": "reader", "label": "Reader",       "tag": "ext",  "role": "external"},
+    {"id": "edge",   "label": "Cloudflare",   "tag": "edge", "role": "backend", "sublabel": "Pages · cache"},
+    {"id": "orig",   "label": "Astro Origin", "tag": "orig", "role": "focal",   "sublabel": "SSR + MDX"},
+    {"id": "bun",    "label": "MDX Bundle",   "tag": "bun",  "role": "backend", "sublabel": "src/content/*.mdx"},
+    {"id": "cms",    "label": "Content CMS",  "tag": "cms",  "role": "store",   "sublabel": "assets · og images"}
+  ],
+  "edges": [
+    {"from": "reader", "to": "edge", "label": "HTTPS",    "role": "external"},
+    {"from": "edge",   "to": "orig", "label": "SSR",      "role": "primary"},
+    {"from": "orig",   "to": "bun",  "label": "READ MDX"},
+    {"from": "orig",   "to": "cms",  "label": "QUERY"}
+  ]
+}"#;
+
 fn show(label: &str, body: &str) {
     println!("=== BEGIN {label} ===");
     println!("{body}");
@@ -122,4 +150,5 @@ fn main() {
     show("PYRAMID_TAGS", PYRAMID_TAGS);
     show("FLOWCHART_EDGES", FLOWCHART_EDGES);
     show("FLOWCHART_MINIMAL", FLOWCHART_MINIMAL);
+    show("ARCHITECTURE_DEMO", ARCHITECTURE_DEMO);
 }

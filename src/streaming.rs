@@ -82,6 +82,7 @@ impl DiagramValidate for Diagram {
             Diagram::Tree(s) => s.validate(),
             Diagram::Layers(s) => s.validate(),
             Diagram::Flowchart(s) => s.validate(),
+            Diagram::Architecture(s) => s.validate(),
         }
     }
 }

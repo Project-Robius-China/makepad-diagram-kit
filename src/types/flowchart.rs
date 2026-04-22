@@ -287,12 +287,9 @@ pub fn layout_flowchart(spec: &FlowchartSpec, ctx: &LayoutContext) -> DiagramLay
         let to = Point::new(cx, y_center[b] - NODE_HEIGHT / 2.0);
         // Role → stroke color. Primary uses accent, External uses link
         // (blue), Default uses muted. The label tracks the stroke so role
-        // reads consistently.
-        let edge_color = match edge.role {
-            EdgeRole::Default => theme.palette.muted,
-            EdgeRole::Primary => theme.palette.accent,
-            EdgeRole::External => theme.palette.link,
-        };
+        // reads consistently. Shared with `architecture` via
+        // `crate::types::shared::edge_color_for_role`.
+        let edge_color = crate::types::shared::edge_color_for_role(edge.role, theme);
         out.push(Primitive::Arrow {
             from,
             to,

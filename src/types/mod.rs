@@ -8,6 +8,7 @@
 //!
 //! The top-level [`Diagram`] enum discriminates on the JSON `"type"` field.
 
+pub mod architecture;
 pub mod flowchart;
 pub mod layers;
 pub mod pyramid;
@@ -20,6 +21,12 @@ pub mod tree;
 // engines emit the primitives.
 pub(crate) mod eyebrow;
 
+// Cross-type helpers (edge role → color, etc.) — kept crate-private, only
+// the layout engines consume them. Exposed via the shared module so a
+// single rule governs both `flowchart` and `architecture` strokes.
+pub(crate) mod shared;
+
+pub use architecture::{ArchitectureSpec, layout_architecture};
 pub use flowchart::{FlowchartSpec, layout_flowchart};
 pub use layers::{LayersSpec, layout_layers};
 pub use pyramid::{PyramidSpec, layout_pyramid};
@@ -46,6 +53,7 @@ pub enum Diagram {
     Tree(TreeSpec),
     Layers(LayersSpec),
     Flowchart(FlowchartSpec),
+    Architecture(ArchitectureSpec),
 }
 
 impl Diagram {
@@ -58,6 +66,7 @@ impl Diagram {
             Diagram::Tree(_) => "tree",
             Diagram::Layers(_) => "layers",
             Diagram::Flowchart(_) => "flowchart",
+            Diagram::Architecture(_) => "architecture",
         }
     }
 
@@ -71,6 +80,7 @@ impl Diagram {
             Diagram::Tree(s) => tree::count_nodes(&s.root),
             Diagram::Layers(s) => s.layers.len(),
             Diagram::Flowchart(s) => s.nodes.len(),
+            Diagram::Architecture(s) => s.nodes.len(),
         }
     }
 
@@ -84,6 +94,7 @@ impl Diagram {
             Diagram::Tree(s) => tree::warnings(s),
             Diagram::Layers(s) => layers::warnings(s),
             Diagram::Flowchart(s) => flowchart::warnings(s),
+            Diagram::Architecture(s) => architecture::warnings(s),
         }
     }
 
@@ -96,6 +107,7 @@ impl Diagram {
             Diagram::Tree(s) => layout_tree(s, ctx),
             Diagram::Layers(s) => layout_layers(s, ctx),
             Diagram::Flowchart(s) => layout_flowchart(s, ctx),
+            Diagram::Architecture(s) => layout_architecture(s, ctx),
         }
     }
 }
