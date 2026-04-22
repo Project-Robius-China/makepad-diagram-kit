@@ -346,22 +346,27 @@ pub fn render_text(
 ) {
     draw_text.color = color_to_vec4(color);
     draw_text.text_style.font_size = font_size;
-    // Compute anchor offset for horizontal alignment. DrawText::draw_abs
-    // positions the baseline at `pos`; text lays out rightward from there.
-    // For Center/Right we measure the text extent crudely by glyph count
-    // since we don't have access to shaped metrics at layout time.
+    // Use DrawText's own layout engine to measure the text's shaped size,
+    // then compute a truly centered position instead of guessing at
+    // glyph metrics. `(x, y)` is interpreted as the desired VISUAL CENTER
+    // of the text — horizontal center per `align`, vertical center always.
     //
-    // A shaped-text measurement would be more accurate, but the layout
-    // engine already positioned anchor points using a font-agnostic width
-    // estimate, so this approximation tracks.
-    let approx_glyph_w = font_size as f64 * 0.55;
-    let approx_w = text.chars().count() as f64 * approx_glyph_w;
-    let anchor_offset = match align {
+    // This is the Makepad-idiomatic path (DrawText::layout returns a
+    // LaidoutText with `size_in_lpxs` — see draw/src/shader/draw_text.rs
+    // line 2449). DrawText::draw_abs then places the text's top-left at
+    // pos, so we subtract half-size to center.
+    let laid = draw_text.layout(cx, 0.0, 0.0, None, false, makepad_widgets::makepad_draw::Align::default(), text);
+    let text_w = laid.size_in_lpxs.width as f64;
+    let text_h = laid.size_in_lpxs.height as f64;
+    let anchor_x_offset = match align {
         TextAlign::Left => 0.0,
-        TextAlign::Center => -approx_w * 0.5,
-        TextAlign::Right => -approx_w,
+        TextAlign::Center => -text_w * 0.5,
+        TextAlign::Right => -text_w,
     };
-    let pos = dvec2(origin.x + x as f64 + anchor_offset, origin.y + y as f64);
+    let pos = dvec2(
+        origin.x + x as f64 + anchor_x_offset,
+        origin.y + y as f64 - text_h * 0.5,
+    );
     draw_text.draw_abs(cx, pos, text);
 }
 
