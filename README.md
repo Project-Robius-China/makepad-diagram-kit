@@ -1,22 +1,23 @@
 # makepad-diagram-kit
 
 Streaming-renderable editorial diagrams for Makepad 2.0 apps. JSON-spec input,
-renderer-agnostic vector output. v1 ships 5 diagram types inspired by the
-editorial aesthetic of
+renderer-agnostic vector output. Six diagram types inspired by the editorial
+aesthetic of
 [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design):
 
-| Type        | Use case                                    |
-| ----------- | ------------------------------------------- |
-| `pyramid`   | Ranked hierarchies, content pyramids        |
-| `quadrant`  | 2-axis positioning scatter (Impact×Effort)  |
-| `tree`      | Parent → children hierarchies               |
-| `layers`    | Stacked abstractions (OSI, tech stacks)     |
-| `flowchart` | Vertical decision flow                      |
+| Type           | Use case                                         |
+| -------------- | ------------------------------------------------ |
+| `pyramid`      | Ranked hierarchies · `orientation:"down"` funnel |
+| `quadrant`     | 2-axis positioning scatter (Impact×Effort)       |
+| `tree`         | Parent → children hierarchies · elbow edges      |
+| `layers`       | Stacked abstractions (OSI, tech stacks)          |
+| `flowchart`    | Vertical decision flow · edge roles              |
+| `architecture` | 2D layered system diagram · role-tagged nodes    |
 
-The library is **renderer-agnostic in v1**: `layout()` produces positioned
+The library is **renderer-agnostic**: `layout()` produces positioned
 `Primitive`s (rects, polygons, lines, arrows, text); any backend can paint
-them. A Makepad-native binding under the `makepad` feature is a follow-up
-task.
+them. Enable the `makepad` feature for the bundled `DiagramView` widget with
+Sdf-shaded rounded nodes, dot-pattern background, and auto-centered text.
 
 ## Quickstart
 

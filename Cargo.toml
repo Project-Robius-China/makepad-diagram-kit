@@ -2,7 +2,7 @@
 name = "makepad-diagram-kit"
 version = "0.1.0"
 edition = "2024"
-description = "Streaming-renderable editorial diagrams for Makepad 2.0 apps. JSON-spec input, Makepad-native vector output. 13 diagram types planned; v1 ships 5 (pyramid, quadrant, tree, layers, flowchart)."
+description = "Streaming-renderable editorial diagrams for Makepad 2.0 apps. JSON-spec input, Makepad-native vector output. 6 types: pyramid, quadrant, tree, layers, flowchart, architecture."
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 
