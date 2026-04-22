@@ -1,7 +1,8 @@
-//! Pyramid / funnel diagram: trapezoid layers from narrow apex to wide base.
+//! Pyramid / funnel diagram: trapezoid layers interpolating apex-to-base
+//! width. Orientation is `up` (classic pyramid, narrow apex on top) or
+//! `down` (funnel, wide mouth on top) — see [`PyramidOrientation`].
 //!
-//! See `robius/diagram-design/references/type-pyramid.md`. v1 only ships the
-//! point-up (pyramid) orientation; funnel (point-down) is v1.1.
+//! Reference: `robius/diagram-design/references/type-pyramid.md`.
 
 use crate::errors::{ParseError, Warning};
 use crate::layout::{DiagramLayout, LayoutContext};
@@ -28,14 +29,31 @@ pub struct PyramidLevel {
     pub tag: Option<String>,
 }
 
-/// JSON schema: `{"type":"pyramid","levels":[...], "accent_idx":optional}`.
+/// Pyramid orientation: point-up (classic) vs point-down (funnel).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum PyramidOrientation {
+    /// Narrow apex at top, wide base at bottom (default, classic pyramid).
+    #[default]
+    Up,
+    /// Wide at top, narrow at bottom (funnel — e.g., sales conversion,
+    /// awareness → purchase). `levels[0]` is still the widest (top), last
+    /// is the narrowest (tip).
+    Down,
+}
+
+/// JSON schema: `{"type":"pyramid","levels":[...], "accent_idx":optional,
+/// "orientation":"up"|"down"}`.
 ///
-/// `levels[0]` is the **apex** (top, narrowest); the last is the base (widest).
+/// `levels[0]` is the **apex** (top, narrowest) for `"up"`, or the **mouth**
+/// (top, widest) for `"down"`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct PyramidSpec {
     pub levels: Vec<PyramidLevel>,
     #[serde(default)]
     pub accent_idx: Option<usize>,
+    #[serde(default)]
+    pub orientation: PyramidOrientation,
 }
 
 impl PyramidSpec {
@@ -85,17 +103,19 @@ pub fn layout_pyramid(spec: &PyramidSpec, ctx: &LayoutContext) -> DiagramLayout 
     let stack_h = canvas_h - pad_top - pad_bot;
     let layer_h = stack_h / n as f32;
 
-    let top_w = canvas_w * 0.20;
-    let bot_w = canvas_w * 0.90;
+    // For classic pyramid (Up): top narrow → bottom wide.
+    // For funnel (Down): top wide → bottom narrow. Swap the two widths.
+    let (narrow_w, wide_w) = (canvas_w * 0.20, canvas_w * 0.90);
+    let (top_w, bot_w) = match spec.orientation {
+        PyramidOrientation::Up => (narrow_w, wide_w),
+        PyramidOrientation::Down => (wide_w, narrow_w),
+    };
     let cx = canvas_w / 2.0;
 
     // Width for the shared boundary between level `i-1` and `i` — interpolate
     // between top_w (at the apex) and bot_w (past the final bottom boundary).
     let width_at = |i: usize| -> f32 {
         if n == 1 {
-            // Single-level pyramid collapses to a single trapezoid with
-            // equidistant top/bottom widths — use the midpoint to match the
-            // average pyramid silhouette.
             return (top_w + bot_w) / 2.0;
         }
         let t = i as f32 / n as f32;
@@ -201,7 +221,7 @@ mod tests {
                     tag: None,
                 },
             ],
-            accent_idx: None,
+            accent_idx: None, orientation: Default::default(),
         }
     }
 
@@ -273,7 +293,7 @@ mod tests {
             .collect();
         let spec = PyramidSpec {
             levels,
-            accent_idx: None,
+            accent_idx: None, orientation: Default::default(),
         };
         let w = warnings(&spec);
         assert_eq!(w.len(), 1);
