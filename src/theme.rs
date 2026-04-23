@@ -154,7 +154,7 @@ impl Theme {
                 annotation_size: 8.0,
             },
             stroke_default: 1.0,
-            corner_radius: 8.0,
+            corner_radius: 12.0,
         }
     }
 
@@ -183,7 +183,7 @@ impl Theme {
                 annotation_size: 8.0,
             },
             stroke_default: 1.0,
-            corner_radius: 8.0,
+            corner_radius: 12.0,
         }
     }
 }

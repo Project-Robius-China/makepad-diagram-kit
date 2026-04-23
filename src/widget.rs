@@ -78,7 +78,7 @@ script_mod! {
             color: #faf7f2
             border_color: #1c1917
             border_size: 1.0
-            border_radius: 6.0
+            border_radius: 12.0
         }
         draw_dot_pattern +: {
             color: #1c1917
