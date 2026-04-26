@@ -76,6 +76,10 @@ fn update_bounds(b: &mut Rect, p: &Primitive) {
             b.expand_to(Point::new(*x, *y));
             b.expand_to(Point::new(*x + *w, *y + *h));
         }
+        Primitive::Circle { cx, cy, r, .. } => {
+            b.expand_to(Point::new(*cx - *r, *cy - *r));
+            b.expand_to(Point::new(*cx + *r, *cy + *r));
+        }
         Primitive::Polygon { points, .. } => {
             for pt in points {
                 b.expand_to(*pt);

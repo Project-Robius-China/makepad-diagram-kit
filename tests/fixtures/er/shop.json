@@ -1,0 +1,48 @@
+{
+  "type": "er",
+  "entities": [
+    {
+      "id": "user",
+      "name": "User",
+      "role": "focal",
+      "fields": [
+        { "name": "id", "type": "uuid", "key": "pk" },
+        { "name": "email", "type": "text" }
+      ]
+    },
+    {
+      "id": "order",
+      "name": "Order",
+      "fields": [
+        { "name": "id", "type": "uuid", "key": "pk" },
+        { "name": "user_id", "type": "uuid", "key": "fk" },
+        { "name": "total", "type": "money" }
+      ]
+    },
+    {
+      "id": "payment",
+      "name": "Payment",
+      "fields": [
+        { "name": "id", "type": "uuid", "key": "pk" },
+        { "name": "order_id", "type": "uuid", "key": "fk" }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "user",
+      "to": "order",
+      "from_cardinality": "1",
+      "to_cardinality": "N",
+      "label": "places",
+      "role": "primary"
+    },
+    {
+      "from": "order",
+      "to": "payment",
+      "from_cardinality": "1",
+      "to_cardinality": "0..1",
+      "label": "paid by"
+    }
+  ]
+}

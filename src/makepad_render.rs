@@ -11,7 +11,7 @@
 //! | `Rect`    | `DrawRoundedRect` SDF (single pass, per-rect radius + border) |
 //! | `Polygon` | Axis-aligned bounding rect (documented approximation — v1 only emits trapezoids/diamonds where AABB reads reasonably) |
 //! | `Line`    | Axis-aligned or thin rotated rect — implemented as AABB-approx thin rect (no shader) |
-//! | `Arrow`   | Line shaft + two filled triangle-edge rects for the head |
+//! | `Arrow`   | Line shaft + SDF triangular arrowhead |
 //! | `Text`    | Single `DrawText` call with `text_style` inherited from the widget DSL |
 //!
 //! # SDF usage
@@ -21,9 +21,9 @@
 //! Polygons/lines/arrows keep the plain `DrawColor` path since their
 //! silhouettes are already axis-aligned strips.
 
-use crate::primitive::{LineStyle, Point, Primitive, TextAlign};
+use crate::primitive::{LineStyle, Point, Primitive, Rect as PrimitiveRect, TextAlign};
 use crate::theme::Color;
-use crate::widget::DrawRoundedRect;
+use crate::widget::{DrawArrowHead, DrawCircle, DrawRoundedRect};
 use makepad_widgets::makepad_draw::*;
 
 /// Convert a kit [`Color`] (0..=255 RGBA) to a Makepad `Vec4f` (0..=1.0 RGBA).
@@ -95,7 +95,11 @@ pub fn render_rect_rounded(
     // fresh instance with its own radius / border.
     rounded.color = color_to_vec4(fill);
     rounded.border_color = color_to_vec4(stroke);
-    rounded.border_size = if stroke.a > 0 { stroke_width.max(0.0) } else { 0.0 };
+    rounded.border_size = if stroke.a > 0 {
+        stroke_width.max(0.0)
+    } else {
+        0.0
+    };
     rounded.border_radius = corner_radius.max(0.0);
     rounded.draw_abs(cx, world_rect(origin, x, y, w, h));
 }
@@ -137,6 +141,42 @@ pub fn render_rect(
         // right
         fill_rect.draw_abs(cx, sanitize_rect(world_rect(origin, x + w - sw, y, sw, h)));
     }
+}
+
+/// Paint a kit `Primitive::Circle` using the `DrawCircle` SDF shader.
+#[allow(clippy::too_many_arguments)]
+pub fn render_circle(
+    cx: &mut Cx2d,
+    circle: &mut DrawCircle,
+    origin: Vec2d,
+    center_x: f32,
+    center_y: f32,
+    radius: f32,
+    fill: Color,
+    stroke: Color,
+    stroke_width: f32,
+) {
+    if radius <= 0.0 {
+        return;
+    }
+    circle.color = color_to_vec4(fill);
+    circle.border_color = color_to_vec4(stroke);
+    circle.border_size = if stroke.a > 0 {
+        stroke_width.max(0.0)
+    } else {
+        0.0
+    };
+    circle.radius = radius;
+    circle.draw_abs(
+        cx,
+        world_rect(
+            origin,
+            center_x - radius,
+            center_y - radius,
+            radius * 2.0,
+            radius * 2.0,
+        ),
+    );
 }
 
 /// Paint a kit `Primitive::Polygon` as its axis-aligned bounding-box fill
@@ -210,6 +250,12 @@ fn render_edge(
     b: Point,
     stroke_width: f32,
 ) {
+    for r in line_segment_rects(a, b, stroke_width, LineStyle::Solid) {
+        fill_rect.draw_abs(cx, sanitize_rect(world_rect(origin, r.x, r.y, r.w, r.h)));
+    }
+}
+
+fn segment_rect(a: Point, b: Point, stroke_width: f32) -> PrimitiveRect {
     let (min_x, max_x) = if a.x <= b.x { (a.x, b.x) } else { (b.x, a.x) };
     let (min_y, max_y) = if a.y <= b.y { (a.y, b.y) } else { (b.y, a.y) };
     let dx = max_x - min_x;
@@ -218,29 +264,49 @@ fn render_edge(
         // Predominantly horizontal — render as a thin horizontal rect
         // centred on the midpoint y.
         let mid_y = (a.y + b.y) * 0.5;
-        fill_rect.draw_abs(
-            cx,
-            sanitize_rect(world_rect(
-                origin,
-                min_x,
-                mid_y - stroke_width * 0.5,
-                dx,
-                stroke_width,
-            )),
-        );
+        PrimitiveRect::new(min_x, mid_y - stroke_width * 0.5, dx, stroke_width)
     } else {
         // Predominantly vertical — thin vertical rect.
         let mid_x = (a.x + b.x) * 0.5;
-        fill_rect.draw_abs(
-            cx,
-            sanitize_rect(world_rect(
-                origin,
-                mid_x - stroke_width * 0.5,
-                min_y,
-                stroke_width,
-                dy,
-            )),
-        );
+        PrimitiveRect::new(mid_x - stroke_width * 0.5, min_y, stroke_width, dy)
+    }
+}
+
+/// Split a line/arrow shaft into draw rects. Dashed style is implemented here
+/// rather than in the layout layer so all diagram types get identical stroke
+/// semantics.
+fn line_segment_rects(
+    from: Point,
+    to: Point,
+    stroke_width: f32,
+    style: LineStyle,
+) -> Vec<PrimitiveRect> {
+    match style {
+        LineStyle::Solid => vec![segment_rect(from, to, stroke_width)],
+        LineStyle::Dashed => {
+            const DASH: f32 = 8.0;
+            const GAP: f32 = 6.0;
+            let dx = to.x - from.x;
+            let dy = to.y - from.y;
+            let len = (dx * dx + dy * dy).sqrt();
+            if len <= f32::EPSILON {
+                return vec![segment_rect(from, to, stroke_width)];
+            }
+            let ux = dx / len;
+            let uy = dy / len;
+            let mut rects = Vec::new();
+            let mut pos = 0.0;
+            while pos < len {
+                let end = (pos + DASH).min(len);
+                if end > pos {
+                    let a = Point::new(from.x + ux * pos, from.y + uy * pos);
+                    let b = Point::new(from.x + ux * end, from.y + uy * end);
+                    rects.push(segment_rect(a, b, stroke_width));
+                }
+                pos += DASH + GAP;
+            }
+            rects
+        }
     }
 }
 
@@ -254,78 +320,201 @@ pub fn render_line(
     to: Point,
     color: Color,
     stroke_width: f32,
-    _style: LineStyle,
+    style: LineStyle,
 ) {
     if color.a == 0 || stroke_width <= 0.0 {
         return;
     }
     fill_rect.color = color_to_vec4(color);
-    render_edge(cx, fill_rect, origin, from, to, stroke_width);
+    for r in line_segment_rects(from, to, stroke_width, style) {
+        fill_rect.draw_abs(cx, sanitize_rect(world_rect(origin, r.x, r.y, r.w, r.h)));
+    }
 }
 
-/// Paint a kit `Primitive::Arrow`: line shaft plus a small filled triangular
-/// arrowhead (rendered as a 6 lpx filled square at the `to` endpoint — a
-/// documented simplification; see module docs).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ArrowHeadDirection {
+    Right,
+    Left,
+    Down,
+    Up,
+}
+
+impl ArrowHeadDirection {
+    fn as_shader_value(self) -> f32 {
+        match self {
+            ArrowHeadDirection::Right => 0.0,
+            ArrowHeadDirection::Left => 1.0,
+            ArrowHeadDirection::Down => 2.0,
+            ArrowHeadDirection::Up => 3.0,
+        }
+    }
+
+    #[cfg(test)]
+    fn shader_points(self, w: f32, h: f32) -> [Point; 3] {
+        match self {
+            ArrowHeadDirection::Right => [
+                Point::new(w, h * 0.5),
+                Point::new(0.0, h),
+                Point::new(0.0, 0.0),
+            ],
+            ArrowHeadDirection::Left => [
+                Point::new(0.0, h * 0.5),
+                Point::new(w, 0.0),
+                Point::new(w, h),
+            ],
+            ArrowHeadDirection::Down => [
+                Point::new(w * 0.5, h),
+                Point::new(0.0, 0.0),
+                Point::new(w, 0.0),
+            ],
+            ArrowHeadDirection::Up => [
+                Point::new(w * 0.5, 0.0),
+                Point::new(w, h),
+                Point::new(0.0, h),
+            ],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct ArrowHeadGeometry {
+    rect: PrimitiveRect,
+    direction: ArrowHeadDirection,
+}
+
+/// Compute the tight draw quad for a cardinal SDF triangle arrowhead.
+fn arrow_head_geometry(from: Point, to: Point) -> ArrowHeadGeometry {
+    let dy = to.y - from.y;
+    let dx = to.x - from.x;
+    const HEAD: f32 = 9.0;
+
+    if dy.abs() > dx.abs() {
+        if dy > 0.0 {
+            ArrowHeadGeometry {
+                rect: PrimitiveRect::new(to.x - HEAD * 0.5, to.y - HEAD, HEAD, HEAD),
+                direction: ArrowHeadDirection::Down,
+            }
+        } else {
+            ArrowHeadGeometry {
+                rect: PrimitiveRect::new(to.x - HEAD * 0.5, to.y, HEAD, HEAD),
+                direction: ArrowHeadDirection::Up,
+            }
+        }
+    } else if dx >= 0.0 {
+        ArrowHeadGeometry {
+            rect: PrimitiveRect::new(to.x - HEAD, to.y - HEAD * 0.5, HEAD, HEAD),
+            direction: ArrowHeadDirection::Right,
+        }
+    } else {
+        ArrowHeadGeometry {
+            rect: PrimitiveRect::new(to.x, to.y - HEAD * 0.5, HEAD, HEAD),
+            direction: ArrowHeadDirection::Left,
+        }
+    }
+}
+
+fn render_arrow_head(
+    cx: &mut Cx2d,
+    draw_arrow_head: &mut DrawArrowHead,
+    origin: Vec2d,
+    from: Point,
+    to: Point,
+    color: Color,
+) {
+    let head = arrow_head_geometry(from, to);
+    draw_arrow_head.color = color_to_vec4(color);
+    draw_arrow_head.direction = head.direction.as_shader_value();
+    draw_arrow_head.draw_abs(
+        cx,
+        sanitize_rect(world_rect(
+            origin,
+            head.rect.x,
+            head.rect.y,
+            head.rect.w,
+            head.rect.h,
+        )),
+    );
+}
+
+/// Paint a kit `Primitive::Arrow`: line shaft plus a small directional
+/// arrowhead.
+#[allow(clippy::too_many_arguments)]
 pub fn render_arrow(
     cx: &mut Cx2d,
     fill_rect: &mut DrawColor,
+    draw_arrow_head: &mut DrawArrowHead,
     origin: Vec2d,
     from: Point,
     to: Point,
     color: Color,
     stroke_width: f32,
+    style: LineStyle,
 ) {
     if color.a == 0 || stroke_width <= 0.0 {
         return;
     }
     fill_rect.color = color_to_vec4(color);
-    render_edge(cx, fill_rect, origin, from, to, stroke_width);
-    // Arrowhead — 4-step horizontal trapezoid staircase approximating a
-    // downward-pointing triangle. Each step is ~25% narrower than the
-    // one above it, so the silhouette reads as a triangle rather than a
-    // square. Direction-aware: for vertical-down arrows (from.y < to.y)
-    // the tip points down; for vertical-up arrows the tip points up;
-    // horizontal arrows still get a square (v1 flowchart is vertical
-    // only, so that edge case is rare).
-    let dy = to.y - from.y;
-    let dx = to.x - from.x;
-    const HEAD_W: f32 = 8.0;
-    const HEAD_H: f32 = 6.0;
-    const STEPS: usize = 4;
-    if dy.abs() > dx.abs() {
-        let down = dy > 0.0;
-        for i in 0..STEPS {
-            let t = i as f32 / STEPS as f32;
-            let w = HEAD_W * (1.0 - t);
-            let step_h = HEAD_H / STEPS as f32;
-            let sy = if down {
-                to.y - HEAD_H + (i as f32) * step_h
-            } else {
-                to.y + (STEPS - 1 - i) as f32 * step_h - HEAD_H + (STEPS as f32) * step_h
-            };
-            fill_rect.draw_abs(
-                cx,
-                sanitize_rect(world_rect(
-                    origin,
-                    to.x - w * 0.5,
-                    sy,
-                    w,
-                    step_h,
-                )),
+    for r in line_segment_rects(from, to, stroke_width, style) {
+        fill_rect.draw_abs(cx, sanitize_rect(world_rect(origin, r.x, r.y, r.w, r.h)));
+    }
+    render_arrow_head(cx, draw_arrow_head, origin, from, to, color);
+}
+
+#[cfg(test)]
+#[allow(clippy::items_after_test_module)]
+mod tests {
+    use super::*;
+
+    fn winding(points: [Point; 3]) -> f32 {
+        points
+            .iter()
+            .zip(points.iter().cycle().skip(1))
+            .map(|(a, b)| a.x * b.y - a.y * b.x)
+            .sum()
+    }
+
+    #[test]
+    fn horizontal_arrow_head_is_one_directional_triangle_geometry() {
+        let head = arrow_head_geometry(Point::new(10.0, 20.0), Point::new(110.0, 20.0));
+
+        assert_eq!(head.direction, ArrowHeadDirection::Right);
+        assert_eq!(head.rect, PrimitiveRect::new(101.0, 15.5, 9.0, 9.0));
+    }
+
+    #[test]
+    fn arrow_head_shader_points_share_visible_winding() {
+        for direction in [
+            ArrowHeadDirection::Right,
+            ArrowHeadDirection::Left,
+            ArrowHeadDirection::Down,
+            ArrowHeadDirection::Up,
+        ] {
+            assert!(
+                winding(direction.shader_points(9.0, 9.0)) > 0.0,
+                "{direction:?} should use the same winding as the visible left arrowhead"
             );
         }
-    } else {
-        // Horizontal — fall back to small square (rare in v1).
-        fill_rect.draw_abs(
-            cx,
-            sanitize_rect(world_rect(
-                origin,
-                to.x - HEAD_W * 0.5,
-                to.y - HEAD_H * 0.5,
-                HEAD_W,
-                HEAD_H,
-            )),
+    }
+
+    #[test]
+    fn dashed_horizontal_line_breaks_into_short_segments() {
+        let solid = line_segment_rects(
+            Point::new(10.0, 20.0),
+            Point::new(110.0, 20.0),
+            2.0,
+            LineStyle::Solid,
         );
+        let dashed = line_segment_rects(
+            Point::new(10.0, 20.0),
+            Point::new(110.0, 20.0),
+            2.0,
+            LineStyle::Dashed,
+        );
+
+        assert_eq!(solid.len(), 1);
+        assert!(dashed.len() > 3, "expected visible dash segments");
+        assert!(dashed.iter().all(|r| r.w <= 8.1));
+        assert!(dashed.iter().map(|r| r.w).sum::<f32>() < 100.0);
     }
 }
 
@@ -355,7 +544,15 @@ pub fn render_text(
     // LaidoutText with `size_in_lpxs` — see draw/src/shader/draw_text.rs
     // line 2449). DrawText::draw_abs then places the text's top-left at
     // pos, so we subtract half-size to center.
-    let laid = draw_text.layout(cx, 0.0, 0.0, None, false, makepad_widgets::makepad_draw::Align::default(), text);
+    let laid = draw_text.layout(
+        cx,
+        0.0,
+        0.0,
+        None,
+        false,
+        makepad_widgets::makepad_draw::Align::default(),
+        text,
+    );
     let text_w = laid.size_in_lpxs.width as f64;
     let text_h = laid.size_in_lpxs.height as f64;
     let anchor_x_offset = match align {
@@ -378,10 +575,13 @@ pub fn render_text(
 /// Rect primitives go through the rounded-SDF shader so `corner_radius` is
 /// honoured. Lines, arrows, polygons still use the plain `DrawColor` since
 /// they're axis-aligned strips that don't need rounded corners.
+#[allow(clippy::too_many_arguments)]
 pub fn render_primitives(
     cx: &mut Cx2d,
     draw_rect: &mut DrawColor,
     draw_rounded: &mut DrawRoundedRect,
+    draw_arrow_head: &mut DrawArrowHead,
+    draw_circle: &mut DrawCircle,
     draw_text: &mut DrawText,
     origin: Vec2d,
     primitives: &[Primitive],
@@ -433,6 +633,24 @@ pub fn render_primitives(
                     );
                 }
             }
+            Primitive::Circle {
+                cx: circle_x,
+                cy: circle_y,
+                r,
+                fill,
+                stroke,
+                stroke_width,
+            } => render_circle(
+                cx,
+                draw_circle,
+                origin,
+                *circle_x,
+                *circle_y,
+                *r,
+                *fill,
+                *stroke,
+                *stroke_width,
+            ),
             Primitive::Polygon {
                 points,
                 fill,
@@ -445,13 +663,33 @@ pub fn render_primitives(
                 color,
                 stroke_width,
                 style,
-            } => render_line(cx, draw_rect, origin, *from, *to, *color, *stroke_width, *style),
+            } => render_line(
+                cx,
+                draw_rect,
+                origin,
+                *from,
+                *to,
+                *color,
+                *stroke_width,
+                *style,
+            ),
             Primitive::Arrow {
                 from,
                 to,
                 color,
                 stroke_width,
-            } => render_arrow(cx, draw_rect, origin, *from, *to, *color, *stroke_width),
+                style,
+            } => render_arrow(
+                cx,
+                draw_rect,
+                draw_arrow_head,
+                origin,
+                *from,
+                *to,
+                *color,
+                *stroke_width,
+                *style,
+            ),
             Primitive::Text {
                 x,
                 y,
@@ -461,15 +699,7 @@ pub fn render_primitives(
                 align,
                 weight: _,
             } => render_text(
-                cx,
-                draw_text,
-                origin,
-                *x,
-                *y,
-                text,
-                *font_size,
-                *color,
-                *align,
+                cx, draw_text, origin, *x, *y, text, *font_size, *color, *align,
             ),
         }
     }

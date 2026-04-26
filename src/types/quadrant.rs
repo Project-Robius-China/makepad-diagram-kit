@@ -256,11 +256,7 @@ mod tests {
         let layout = layout_quadrant(&spec, &ctx);
 
         // Gather dot centers in insertion order.
-        let dots: Vec<_> = layout
-            .primitives
-            .iter()
-            .filter_map(dot_center)
-            .collect();
+        let dots: Vec<_> = layout.primitives.iter().filter_map(dot_center).collect();
         assert_eq!(dots.len(), 3);
 
         // "mid" at (200, 200) exactly.

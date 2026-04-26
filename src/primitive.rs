@@ -99,6 +99,15 @@ pub enum Primitive {
         stroke_width: f32,
         corner_radius: f32,
     },
+    /// Circle with optional fill and stroke. `(cx, cy)` is the center.
+    Circle {
+        cx: f32,
+        cy: f32,
+        r: f32,
+        fill: Color,
+        stroke: Color,
+        stroke_width: f32,
+    },
     /// Arbitrary polygon — used for trapezoids (pyramid layers) and diamonds
     /// (flowchart decisions). Points must be in draw order and form a simple
     /// closed shape.
@@ -123,6 +132,7 @@ pub enum Primitive {
         to: Point,
         color: Color,
         stroke_width: f32,
+        style: LineStyle,
     },
     /// Single line of text. `(x, y)` is the baseline anchor per the `align`
     /// mode.

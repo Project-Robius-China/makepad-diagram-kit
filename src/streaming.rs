@@ -83,6 +83,13 @@ impl DiagramValidate for Diagram {
             Diagram::Layers(s) => s.validate(),
             Diagram::Flowchart(s) => s.validate(),
             Diagram::Architecture(s) => s.validate(),
+            Diagram::Sequence(s) => s.validate(),
+            Diagram::State(s) => s.validate(),
+            Diagram::Er(s) => s.validate(),
+            Diagram::Timeline(s) => s.validate(),
+            Diagram::Swimlane(s) => s.validate(),
+            Diagram::Nested(s) => s.validate(),
+            Diagram::Venn(s) => s.validate(),
         }
     }
 }

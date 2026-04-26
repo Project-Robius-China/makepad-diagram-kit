@@ -2,7 +2,7 @@
 name = "makepad-diagram-kit"
 version = "0.1.0"
 edition = "2024"
-description = "Streaming-renderable editorial diagrams for Makepad 2.0 apps. JSON-spec input, Makepad-native vector output. 6 types: pyramid, quadrant, tree, layers, flowchart, architecture."
+description = "Streaming-renderable editorial diagrams for Makepad 2.0 apps. JSON-spec input, Makepad-native vector output. 13 types including sequence, state, ER, timeline, swimlane, nested, and Venn."
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 
@@ -15,10 +15,7 @@ thiserror = "1"
 
 # Makepad widget binding — feature-gated so pure-parsing consumers (CLI
 # validators, alternative renderers) don't pull in the full Makepad stack.
-# Path dep rather than a git/crates.io pin: our fork's `dev` branch ships
-# the aichat pieces this kit integrates with, and we want lock-step
-# development without round-tripping through a published release.
-makepad-widgets = { path = "../robius/makepad/widgets", optional = true }
+makepad-widgets = { git = "https://github.com/ZhangHanDong/makepad.git", branch = "dev", optional = true }
 
 [dev-dependencies]
 # For spec snapshot testing via literal JSON round-trips.

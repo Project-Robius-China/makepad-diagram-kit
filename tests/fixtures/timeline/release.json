@@ -1,0 +1,9 @@
+{
+  "type": "timeline",
+  "axis_label": "2026 release",
+  "events": [
+    { "time": "2026-01-10", "label": "Kickoff" },
+    { "time": "2026-02-20", "label": "Beta", "role": "major" },
+    { "time": "2026-04-01", "label": "Launch", "sublabel": "public" }
+  ]
+}

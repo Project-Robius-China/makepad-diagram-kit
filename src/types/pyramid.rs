@@ -173,7 +173,7 @@ pub fn layout_pyramid(spec: &PyramidSpec, ctx: &LayoutContext) -> DiagramLayout 
         let mid_y = (y_top + y_bot) / 2.0;
         out.push(Primitive::Text {
             x: cx,
-            y: mid_y ,
+            y: mid_y,
             text: level.label.clone(),
             font_size: theme.typography.label_size,
             color: theme.palette.ink,
@@ -221,7 +221,8 @@ mod tests {
                     tag: None,
                 },
             ],
-            accent_idx: None, orientation: Default::default(),
+            accent_idx: None,
+            orientation: Default::default(),
         }
     }
 
@@ -293,7 +294,8 @@ mod tests {
             .collect();
         let spec = PyramidSpec {
             levels,
-            accent_idx: None, orientation: Default::default(),
+            accent_idx: None,
+            orientation: Default::default(),
         };
         let w = warnings(&spec);
         assert_eq!(w.len(), 1);

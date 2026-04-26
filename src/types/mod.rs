@@ -9,11 +9,18 @@
 //! The top-level [`Diagram`] enum discriminates on the JSON `"type"` field.
 
 pub mod architecture;
+pub mod er;
 pub mod flowchart;
 pub mod layers;
+pub mod nested;
 pub mod pyramid;
 pub mod quadrant;
+pub mod sequence;
+pub mod state;
+pub mod swimlane;
+pub mod timeline;
 pub mod tree;
+pub mod venn;
 
 // Shared eyebrow-tag helper used by node-based diagram types (tree,
 // flowchart, pyramid). Kept package-private: consumers should not render
@@ -27,11 +34,18 @@ pub(crate) mod eyebrow;
 pub(crate) mod shared;
 
 pub use architecture::{ArchitectureSpec, layout_architecture};
+pub use er::{ErSpec, layout_er};
 pub use flowchart::{FlowchartSpec, layout_flowchart};
 pub use layers::{LayersSpec, layout_layers};
+pub use nested::{NestedSpec, layout_nested};
 pub use pyramid::{PyramidSpec, layout_pyramid};
 pub use quadrant::{QuadrantSpec, layout_quadrant};
+pub use sequence::{SequenceSpec, layout_sequence};
+pub use state::{StateSpec, layout_state};
+pub use swimlane::{SwimlaneSpec, layout_swimlane};
+pub use timeline::{TimelineSpec, layout_timeline};
 pub use tree::{TreeSpec, layout_tree};
+pub use venn::{VennSpec, layout_venn};
 
 use crate::errors::Warning;
 use crate::layout::{DiagramLayout, LayoutContext};
@@ -54,6 +68,13 @@ pub enum Diagram {
     Layers(LayersSpec),
     Flowchart(FlowchartSpec),
     Architecture(ArchitectureSpec),
+    Sequence(SequenceSpec),
+    State(StateSpec),
+    Er(ErSpec),
+    Timeline(TimelineSpec),
+    Swimlane(SwimlaneSpec),
+    Nested(NestedSpec),
+    Venn(VennSpec),
 }
 
 impl Diagram {
@@ -67,6 +88,13 @@ impl Diagram {
             Diagram::Layers(_) => "layers",
             Diagram::Flowchart(_) => "flowchart",
             Diagram::Architecture(_) => "architecture",
+            Diagram::Sequence(_) => "sequence",
+            Diagram::State(_) => "state",
+            Diagram::Er(_) => "er",
+            Diagram::Timeline(_) => "timeline",
+            Diagram::Swimlane(_) => "swimlane",
+            Diagram::Nested(_) => "nested",
+            Diagram::Venn(_) => "venn",
         }
     }
 
@@ -81,6 +109,13 @@ impl Diagram {
             Diagram::Layers(s) => s.layers.len(),
             Diagram::Flowchart(s) => s.nodes.len(),
             Diagram::Architecture(s) => s.nodes.len(),
+            Diagram::Sequence(s) => s.actors.len() + s.messages.len(),
+            Diagram::State(s) => s.states.len() + s.transitions.len(),
+            Diagram::Er(s) => s.entities.len() + s.relationships.len(),
+            Diagram::Timeline(s) => s.events.len(),
+            Diagram::Swimlane(s) => s.lanes.len() + s.steps.len(),
+            Diagram::Nested(s) => s.levels.len(),
+            Diagram::Venn(s) => s.sets.len() + s.intersections.len(),
         }
     }
 
@@ -95,6 +130,13 @@ impl Diagram {
             Diagram::Layers(s) => layers::warnings(s),
             Diagram::Flowchart(s) => flowchart::warnings(s),
             Diagram::Architecture(s) => architecture::warnings(s),
+            Diagram::Sequence(s) => sequence::warnings(s),
+            Diagram::State(s) => state::warnings(s),
+            Diagram::Er(s) => er::warnings(s),
+            Diagram::Timeline(s) => timeline::warnings(s),
+            Diagram::Swimlane(s) => swimlane::warnings(s),
+            Diagram::Nested(s) => nested::warnings(s),
+            Diagram::Venn(s) => venn::warnings(s),
         }
     }
 
@@ -108,6 +150,13 @@ impl Diagram {
             Diagram::Layers(s) => layout_layers(s, ctx),
             Diagram::Flowchart(s) => layout_flowchart(s, ctx),
             Diagram::Architecture(s) => layout_architecture(s, ctx),
+            Diagram::Sequence(s) => layout_sequence(s, ctx),
+            Diagram::State(s) => layout_state(s, ctx),
+            Diagram::Er(s) => layout_er(s, ctx),
+            Diagram::Timeline(s) => layout_timeline(s, ctx),
+            Diagram::Swimlane(s) => layout_swimlane(s, ctx),
+            Diagram::Nested(s) => layout_nested(s, ctx),
+            Diagram::Venn(s) => layout_venn(s, ctx),
         }
     }
 }

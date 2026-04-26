@@ -1,4 +1,4 @@
-//! Gallery example — builds one of each v1 diagram type from hard-coded JSON,
+//! Gallery example — builds one of each shipped diagram type from hard-coded JSON,
 //! runs the layout engine, and prints a brief summary to stdout.
 //!
 //! Run with:
@@ -78,6 +78,113 @@ const FLOWCHART: &str = r#"{
   "accent_idx": 1
 }"#;
 
+const ARCHITECTURE: &str = r#"{
+  "type": "architecture",
+  "orientation": "lr",
+  "nodes": [
+    {"id": "user", "label": "User", "tag": "CLIENT", "role": "external"},
+    {"id": "api",  "label": "API Gateway", "tag": "MW", "role": "focal"},
+    {"id": "db",   "label": "Database", "tag": "STORE", "role": "store"}
+  ],
+  "edges": [
+    {"from": "user", "to": "api", "label": "POST /login", "role": "primary"},
+    {"from": "api",  "to": "db",  "label": "SELECT user"}
+  ]
+}"#;
+
+const SEQUENCE: &str = r#"{
+  "type": "sequence",
+  "actors": [
+    {"id": "user", "label": "User", "tag": "CLIENT"},
+    {"id": "api",  "label": "API",  "tag": "MW", "role": "focal"},
+    {"id": "db",   "label": "DB",   "tag": "STORE"}
+  ],
+  "messages": [
+    {"from": "user", "to": "api", "label": "POST /login", "role": "primary"},
+    {"from": "api",  "to": "db",  "label": "SELECT user"},
+    {"from": "db",   "to": "api", "label": "row"},
+    {"from": "api",  "to": "user","label": "200 OK", "role": "primary"}
+  ]
+}"#;
+
+const STATE: &str = r#"{
+  "type": "state",
+  "orientation": "lr",
+  "states": [
+    {"id": "idle", "label": "Idle", "kind": "start"},
+    {"id": "loading", "label": "Loading"},
+    {"id": "done", "label": "Done", "kind": "end", "role": "focal"}
+  ],
+  "transitions": [
+    {"from": "idle", "to": "loading", "label": "submit"},
+    {"from": "loading", "to": "done", "label": "ok", "role": "primary"}
+  ]
+}"#;
+
+const ER: &str = r#"{
+  "type": "er",
+  "entities": [
+    {"id": "user", "name": "User", "role": "focal", "fields": [
+      {"name": "id", "type": "uuid", "key": "pk"},
+      {"name": "email", "type": "text"}
+    ]},
+    {"id": "order", "name": "Order", "fields": [
+      {"name": "id", "type": "uuid", "key": "pk"},
+      {"name": "user_id", "type": "uuid", "key": "fk"}
+    ]}
+  ],
+  "relationships": [
+    {"from": "user", "to": "order", "from_cardinality": "1", "to_cardinality": "N", "label": "places"}
+  ]
+}"#;
+
+const TIMELINE: &str = r#"{
+  "type": "timeline",
+  "events": [
+    {"time": "2026-01-10", "label": "Kickoff"},
+    {"time": "2026-02-20", "label": "Beta", "role": "major"},
+    {"time": "2026-04-01", "label": "Launch"}
+  ]
+}"#;
+
+const SWIMLANE: &str = r#"{
+  "type": "swimlane",
+  "lanes": [
+    {"id": "pm", "label": "Product"},
+    {"id": "eng", "label": "Engineering"}
+  ],
+  "steps": [
+    {"id": "brief", "lane": "pm", "label": "Write brief"},
+    {"id": "build", "lane": "eng", "label": "Build", "role": "focal"},
+    {"id": "ship", "lane": "eng", "label": "Ship"}
+  ],
+  "edges": [
+    {"from": "brief", "to": "build", "label": "handoff", "role": "primary"},
+    {"from": "build", "to": "ship"}
+  ]
+}"#;
+
+const NESTED: &str = r#"{
+  "type": "nested",
+  "levels": [
+    {"label": "Repo"},
+    {"label": "Crate"},
+    {"label": "Module", "role": "focal"}
+  ]
+}"#;
+
+const VENN: &str = r#"{
+  "type": "venn",
+  "sets": [
+    {"id": "desirable", "label": "Desirable"},
+    {"id": "feasible", "label": "Feasible"},
+    {"id": "viable", "label": "Viable"}
+  ],
+  "intersections": [
+    {"sets": ["desirable", "feasible", "viable"], "label": "Product", "role": "focal"}
+  ]
+}"#;
+
 fn render(name: &str, json: &str) {
     let ctx = LayoutContext::new(1000.0, 500.0);
     match parse(json) {
@@ -113,6 +220,14 @@ fn main() {
     render("tree", TREE);
     render("layers", LAYERS);
     render("flowchart", FLOWCHART);
+    render("arch", ARCHITECTURE);
+    render("sequence", SEQUENCE);
+    render("state", STATE);
+    render("er", ER);
+    render("timeline", TIMELINE);
+    render("swimlane", SWIMLANE);
+    render("nested", NESTED);
+    render("venn", VENN);
     println!();
     println!("  ok.");
 
@@ -120,7 +235,10 @@ fn main() {
     let partial = r#"{"type":"pyramid","levels":[{"label":"L1"},{"label":"L2"}"#;
     match makepad_diagram_kit::parse_lossy(partial) {
         Some(Diagram::Pyramid(p)) => {
-            println!("  lossy prefix: pyramid recovered {} level(s)", p.levels.len());
+            println!(
+                "  lossy prefix: pyramid recovered {} level(s)",
+                p.levels.len()
+            );
         }
         Some(other) => {
             println!("  lossy prefix: recovered {}", other.type_tag());

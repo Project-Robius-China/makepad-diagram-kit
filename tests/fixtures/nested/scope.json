@@ -1,0 +1,8 @@
+{
+  "type": "nested",
+  "levels": [
+    { "label": "Repo", "sublabel": "workspace" },
+    { "label": "Crate", "sublabel": "makepad-diagram-kit" },
+    { "label": "Module", "role": "focal" }
+  ]
+}

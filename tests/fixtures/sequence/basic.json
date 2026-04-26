@@ -1,0 +1,10 @@
+{
+  "type": "sequence",
+  "actors": [
+    {"id": "user", "label": "User", "tag": "CLIENT"},
+    {"id": "api", "label": "API", "tag": "MW", "role": "focal"}
+  ],
+  "messages": [
+    {"from": "user", "to": "api", "label": "POST /login", "role": "primary"}
+  ]
+}

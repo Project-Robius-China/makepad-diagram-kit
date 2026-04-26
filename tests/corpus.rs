@@ -40,6 +40,7 @@ fn assert_accent_policy(diagram: &Diagram, layout: &makepad_diagram_kit::Diagram
         .iter()
         .filter(|p| match p {
             Primitive::Rect { stroke, h, .. } => *stroke == accent && *h >= 24.0,
+            Primitive::Circle { stroke, r, .. } => *stroke == accent && *r >= 4.0,
             Primitive::Polygon { stroke, .. } => *stroke == accent,
             _ => false,
         })
@@ -65,11 +66,7 @@ fn run_corpus(type_dir: &str) {
             Err(e) => panic!("parse {}: {e}", path.display()),
         };
         let elements = diagram.element_count();
-        assert!(
-            elements > 0,
-            "{}: element count was 0",
-            path.display()
-        );
+        assert!(elements > 0, "{}: element count was 0", path.display());
         let layout = layout(&diagram, &ctx);
         assert!(
             !layout.primitives.is_empty(),
@@ -114,4 +111,39 @@ fn corpus_flowchart() {
 #[test]
 fn corpus_architecture() {
     run_corpus("architecture");
+}
+
+#[test]
+fn corpus_sequence() {
+    run_corpus("sequence");
+}
+
+#[test]
+fn corpus_state() {
+    run_corpus("state");
+}
+
+#[test]
+fn corpus_er() {
+    run_corpus("er");
+}
+
+#[test]
+fn corpus_timeline() {
+    run_corpus("timeline");
+}
+
+#[test]
+fn corpus_swimlane() {
+    run_corpus("swimlane");
+}
+
+#[test]
+fn corpus_nested() {
+    run_corpus("nested");
+}
+
+#[test]
+fn corpus_venn() {
+    run_corpus("venn");
 }

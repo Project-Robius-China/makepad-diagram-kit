@@ -6,7 +6,7 @@
 
 use crate::errors::{ParseError, Warning};
 use crate::layout::{DiagramLayout, LayoutContext};
-use crate::primitive::{Point, Primitive, TextAlign, TextWeight};
+use crate::primitive::{LineStyle, Point, Primitive, TextAlign, TextWeight};
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -295,6 +295,7 @@ pub fn layout_flowchart(spec: &FlowchartSpec, ctx: &LayoutContext) -> DiagramLay
             to,
             color: edge_color,
             stroke_width: theme.stroke_default,
+            style: LineStyle::Solid,
         });
         if let Some(lbl) = &edge.label {
             // Midpoint

@@ -114,7 +114,7 @@ pub fn layout_layers(spec: &LayersSpec, ctx: &LayoutContext) -> DiagramLayout {
         });
 
         // Centered label
-        let label_y = y + row_h / 2.0 ;
+        let label_y = y + row_h / 2.0;
         out.push(Primitive::Text {
             x: pad_left,
             y: label_y,

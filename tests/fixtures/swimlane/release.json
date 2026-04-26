@@ -1,0 +1,19 @@
+{
+  "type": "swimlane",
+  "lanes": [
+    { "id": "pm", "label": "Product" },
+    { "id": "eng", "label": "Engineering" },
+    { "id": "ops", "label": "Operations" }
+  ],
+  "steps": [
+    { "id": "brief", "lane": "pm", "label": "Write brief" },
+    { "id": "build", "lane": "eng", "label": "Build", "role": "focal" },
+    { "id": "deploy", "lane": "ops", "label": "Deploy" },
+    { "id": "announce", "lane": "pm", "label": "Announce" }
+  ],
+  "edges": [
+    { "from": "brief", "to": "build", "label": "handoff", "role": "primary" },
+    { "from": "build", "to": "deploy" },
+    { "from": "deploy", "to": "announce" }
+  ]
+}

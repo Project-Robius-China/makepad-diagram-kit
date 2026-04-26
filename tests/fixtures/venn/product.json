@@ -1,0 +1,15 @@
+{
+  "type": "venn",
+  "sets": [
+    { "id": "desirable", "label": "Desirable" },
+    { "id": "feasible", "label": "Feasible" },
+    { "id": "viable", "label": "Viable" }
+  ],
+  "intersections": [
+    {
+      "sets": ["desirable", "feasible", "viable"],
+      "label": "Product",
+      "role": "focal"
+    }
+  ]
+}

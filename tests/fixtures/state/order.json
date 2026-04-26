@@ -1,0 +1,15 @@
+{
+  "type": "state",
+  "orientation": "lr",
+  "states": [
+    { "id": "new", "label": "New", "kind": "start" },
+    { "id": "paid", "label": "Paid" },
+    { "id": "shipped", "label": "Shipped" },
+    { "id": "done", "label": "Done", "kind": "end", "role": "focal" }
+  ],
+  "transitions": [
+    { "from": "new", "to": "paid", "label": "pay" },
+    { "from": "paid", "to": "shipped", "label": "fulfill", "role": "primary" },
+    { "from": "shipped", "to": "done", "label": "deliver" }
+  ]
+}

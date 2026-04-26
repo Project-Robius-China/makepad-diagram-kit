@@ -28,7 +28,7 @@
 
 use crate::errors::{ParseError, Warning};
 use crate::layout::{DiagramLayout, LayoutContext};
-use crate::primitive::{Point, Primitive, TextAlign, TextWeight};
+use crate::primitive::{LineStyle, Point, Primitive, TextAlign, TextWeight};
 use crate::theme::{Color, Theme};
 use crate::types::flowchart::EdgeRole;
 use serde::Deserialize;
@@ -233,10 +233,8 @@ fn assign_ranks(spec: &ArchitectureSpec) -> Vec<usize> {
     let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
     let mut in_deg = vec![0usize; n];
     for e in &spec.edges {
-        if let (Some(&a), Some(&b)) = (
-            id_to_idx.get(e.from.as_str()),
-            id_to_idx.get(e.to.as_str()),
-        ) && a != b
+        if let (Some(&a), Some(&b)) = (id_to_idx.get(e.from.as_str()), id_to_idx.get(e.to.as_str()))
+            && a != b
         {
             adj[a].push(b);
             in_deg[b] += 1;
@@ -247,8 +245,8 @@ fn assign_ranks(spec: &ArchitectureSpec) -> Vec<usize> {
     // to each node — the longest-path rule.
     let mut rank = vec![0usize; n];
     let mut q: VecDeque<usize> = VecDeque::new();
-    for i in 0..n {
-        if in_deg[i] == 0 {
+    for (i, degree) in in_deg.iter().enumerate() {
+        if *degree == 0 {
             q.push_back(i);
         }
     }
@@ -369,16 +367,15 @@ pub fn layout_architecture(spec: &ArchitectureSpec, ctx: &LayoutContext) -> Diag
             // x ← rank, y ← order within rank.
             // Perpendicular extent (height) determined by the widest rank.
             let max_rank_size = groups.iter().map(Vec::len).max().unwrap_or(1);
-            let rank_total_h =
-                max_rank_size as f32 * NODE_HEIGHT + (max_rank_size.saturating_sub(1)) as f32 * SIBLING_GAP;
+            let rank_total_h = max_rank_size as f32 * NODE_HEIGHT
+                + (max_rank_size.saturating_sub(1)) as f32 * SIBLING_GAP;
             let canvas_mid_y = (ctx.canvas_height.max(rank_total_h + 2.0 * MARGIN)) / 2.0;
 
             for (r, group) in groups.iter().enumerate() {
                 let k = group.len();
                 let band_h = k as f32 * NODE_HEIGHT + (k.saturating_sub(1)) as f32 * SIBLING_GAP;
                 let top = canvas_mid_y - band_h / 2.0;
-                let x_center =
-                    MARGIN + NODE_WIDTH / 2.0 + r as f32 * (NODE_WIDTH + RANK_GAP);
+                let x_center = MARGIN + NODE_WIDTH / 2.0 + r as f32 * (NODE_WIDTH + RANK_GAP);
                 for (i, &idx) in group.iter().enumerate() {
                     let y_center = top + NODE_HEIGHT / 2.0 + i as f32 * (NODE_HEIGHT + SIBLING_GAP);
                     centers[idx] = Point::new(x_center, y_center);
@@ -387,16 +384,15 @@ pub fn layout_architecture(spec: &ArchitectureSpec, ctx: &LayoutContext) -> Diag
         }
         Orientation::Tb => {
             let max_rank_size = groups.iter().map(Vec::len).max().unwrap_or(1);
-            let rank_total_w =
-                max_rank_size as f32 * NODE_WIDTH + (max_rank_size.saturating_sub(1)) as f32 * SIBLING_GAP;
+            let rank_total_w = max_rank_size as f32 * NODE_WIDTH
+                + (max_rank_size.saturating_sub(1)) as f32 * SIBLING_GAP;
             let canvas_mid_x = (ctx.canvas_width.max(rank_total_w + 2.0 * MARGIN)) / 2.0;
 
             for (r, group) in groups.iter().enumerate() {
                 let k = group.len();
                 let band_w = k as f32 * NODE_WIDTH + (k.saturating_sub(1)) as f32 * SIBLING_GAP;
                 let left = canvas_mid_x - band_w / 2.0;
-                let y_center =
-                    MARGIN + NODE_HEIGHT / 2.0 + r as f32 * (NODE_HEIGHT + RANK_GAP);
+                let y_center = MARGIN + NODE_HEIGHT / 2.0 + r as f32 * (NODE_HEIGHT + RANK_GAP);
                 for (i, &idx) in group.iter().enumerate() {
                     let x_center = left + NODE_WIDTH / 2.0 + i as f32 * (NODE_WIDTH + SIBLING_GAP);
                     centers[idx] = Point::new(x_center, y_center);
@@ -446,6 +442,7 @@ pub fn layout_architecture(spec: &ArchitectureSpec, ctx: &LayoutContext) -> Diag
             to,
             color,
             stroke_width: theme.stroke_default,
+            style: LineStyle::Solid,
         });
         if let Some(lbl) = &edge.label {
             let mx = (from.x + to.x) / 2.0;
@@ -471,7 +468,13 @@ pub fn layout_architecture(spec: &ArchitectureSpec, ctx: &LayoutContext) -> Diag
     // 4. Nodes.
     for (i, node) in spec.nodes.iter().enumerate() {
         let c = centers[i];
-        draw_node(&mut out, node, c.x - NODE_WIDTH / 2.0, c.y - NODE_HEIGHT / 2.0, theme);
+        draw_node(
+            &mut out,
+            node,
+            c.x - NODE_WIDTH / 2.0,
+            c.y - NODE_HEIGHT / 2.0,
+            theme,
+        );
     }
 
     out
@@ -563,13 +566,33 @@ mod tests {
 
         // Pairwise: each role's (fill, stroke) must match the table.
         let cases = [
-            (NodeRole::Focal, theme.palette.accent_tint, theme.palette.accent),
+            (
+                NodeRole::Focal,
+                theme.palette.accent_tint,
+                theme.palette.accent,
+            ),
             (NodeRole::Backend, theme.palette.paper, theme.palette.ink),
-            (NodeRole::Store, theme.palette.leaf_tint, theme.palette.muted),
-            (NodeRole::External, theme.palette.leaf_tint, theme.palette.rule),
+            (
+                NodeRole::Store,
+                theme.palette.leaf_tint,
+                theme.palette.muted,
+            ),
+            (
+                NodeRole::External,
+                theme.palette.leaf_tint,
+                theme.palette.rule,
+            ),
             (NodeRole::Input, theme.palette.leaf_tint, theme.palette.soft),
-            (NodeRole::Optional, theme.palette.leaf_tint, theme.palette.rule),
-            (NodeRole::Security, theme.palette.accent_tint, theme.palette.accent),
+            (
+                NodeRole::Optional,
+                theme.palette.leaf_tint,
+                theme.palette.rule,
+            ),
+            (
+                NodeRole::Security,
+                theme.palette.accent_tint,
+                theme.palette.accent,
+            ),
         ];
         for (role, want_fill, want_stroke) in cases {
             let (fill, stroke, _) = role_colors(role, &theme);
@@ -630,15 +653,19 @@ mod tests {
         // Matching edge labels use the same color so the role reads
         // consistently — verify the "SSR" (primary) label is accent and
         // the "HTTPS" (external) label is link.
-        let primary_label_ok = layout.primitives.iter().any(|p| matches!(
-            p,
-            Primitive::Text { text, color, .. } if text == "SSR" && *color == pal.accent
-        ));
+        let primary_label_ok = layout.primitives.iter().any(|p| {
+            matches!(
+                p,
+                Primitive::Text { text, color, .. } if text == "SSR" && *color == pal.accent
+            )
+        });
         assert!(primary_label_ok, "primary label must use accent");
-        let external_label_ok = layout.primitives.iter().any(|p| matches!(
-            p,
-            Primitive::Text { text, color, .. } if text == "HTTPS" && *color == pal.link
-        ));
+        let external_label_ok = layout.primitives.iter().any(|p| {
+            matches!(
+                p,
+                Primitive::Text { text, color, .. } if text == "HTTPS" && *color == pal.link
+            )
+        });
         assert!(external_label_ok, "external label must use link");
     }
 

@@ -115,11 +115,7 @@ struct PositionedNode<'a> {
     parent: Option<usize>,
 }
 
-fn flatten<'a>(
-    spec: &'a TreeSpec,
-    origin_x: f32,
-    origin_y: f32,
-) -> Vec<PositionedNode<'a>> {
+fn flatten<'a>(spec: &'a TreeSpec, origin_x: f32, origin_y: f32) -> Vec<PositionedNode<'a>> {
     let mut out: Vec<PositionedNode<'a>> = Vec::new();
     place(
         &spec.root,
@@ -388,7 +384,10 @@ mod tests {
                 let cx = x + w / 2.0;
                 for t in &texts {
                     if let Primitive::Text {
-                        x: tx, y: _ty, text, ..
+                        x: tx,
+                        y: _ty,
+                        text,
+                        ..
                     } = t
                         && (tx - cx).abs() < 0.01
                         && !rect_for.contains_key(text)
@@ -416,7 +415,9 @@ mod tests {
                     let cx = x + w / 2.0;
                     for t in &texts {
                         if let Primitive::Text {
-                            x: tx, text: tlabel, ..
+                            x: tx,
+                            text: tlabel,
+                            ..
                         } = t
                             && (tx - cx).abs() < 0.01
                             && tlabel == label
